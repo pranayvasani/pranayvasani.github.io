@@ -1,6 +1,6 @@
 # How to be successful by Sam Altman
 
-I would recommend reading Sam Altman's classic [blog](https://blog.samaltman.com/how-to-be-successful) on how to be successful. 
+If you haven't read this already then I would definitely recommend reading Sam Altman's classic [blog](https://blog.samaltman.com/how-to-be-successful) on how to be successful. 
 
 My take aways from the blog are as below.
 
