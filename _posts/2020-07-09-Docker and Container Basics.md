@@ -1,4 +1,4 @@
-# Docker `&` Container Basics
+# Docker &amp; Container Basics
 
 Found a great article on understanding Docker and  Container basics [here](https://technically.substack.com/p/whats-docker-and-what-are-containers)
 
