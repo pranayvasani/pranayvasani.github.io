@@ -1,4 +1,4 @@
-# My First Ever Pulic Talk
+# My First Ever Public Talk
 
 A couple of months ago, I gave my first ever Virtual Public Talk.
 Dr. D.Y. Patil CoE had scheduled a 4 day virtual conference on AI and Data Science.
