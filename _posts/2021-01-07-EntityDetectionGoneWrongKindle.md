@@ -5,7 +5,7 @@ You can read [here](https://pranayvasani.github.io/2021/01/01/ReadingOnAmazonKin
 
 I encountered one instance in the book where it seemed that those meaning just pop up without understanding the context (words adjancent to it) of the word. 
 
-![Viral]()
+![Viral](https://github.com/pranayvasani/pranayvasani.github.io/blob/master/images/viral.png)
 
 May be Amazon Kindle team can do a better job at detecting the entities and then showing the meaning for it.
 NLP is head.
