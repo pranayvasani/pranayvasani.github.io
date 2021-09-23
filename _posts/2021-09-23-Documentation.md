@@ -10,3 +10,5 @@ Do give it a watch, worth the time.
 
 The picture summarizes the concept beautifully.
 
+![documentation_system](https://user-images.githubusercontent.com/4402428/134496109-bd5291db-02a4-4a3e-82c9-a5472575acc6.png)
+
