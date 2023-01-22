@@ -13,3 +13,4 @@ Here is my takeaway from the song and somehow everyone can relate to it as almos
 * Find light within yourself
 * Be your own guide don't follow or look out for anyone's footsteps, find your own direction
 
+I feel something is about to happen in life again :P
