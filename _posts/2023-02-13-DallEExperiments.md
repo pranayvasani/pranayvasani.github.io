@@ -1,3 +1,5 @@
+# Dall-E Experiments
+
 With all happening in AI space at the moment with chatGPT, Stable Diffusion etc. I decided to explore OpenAI and DAllE to begin with.
 I decided to involve my son in the process as he is also quite curious and quick to learn.
 So we went to [OpenAI's Dall-E playground] (https://openai.com/dall-e-2/) to try our hands with it.
