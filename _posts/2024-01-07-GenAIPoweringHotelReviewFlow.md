@@ -11,5 +11,6 @@ It saves me writing long reviews and helps me tweak if need be. Good stuff agoda
 
 Here are some screenshots for reference.
 
-[Screenshot 1](https://github.com/pranayvasani/pranayvasani.github.io/assets/4402428/a8912086-19a2-498a-a3e0-1d20da515a60)
-[Screenshot 2](https://github.com/pranayvasani/pranayvasani.github.io/assets/4402428/dd8ad1f2-a93d-45fd-b100-157ad841cb2a)
+![Screenshot 1](https://github.com/pranayvasani/pranayvasani.github.io/assets/4402428/1feba162-5742-4fa8-bbe1-2aaf7f2ca05a)
+
+![Screenshot 2](https://github.com/pranayvasani/pranayvasani.github.io/assets/4402428/dd8ad1f2-a93d-45fd-b100-157ad841cb2a)
