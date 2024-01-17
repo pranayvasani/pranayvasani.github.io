@@ -1,6 +1,10 @@
-# How To Speak
-
-
+---
+title: "How To Speak"
+description: "How To Speak"
+layout: post
+comments: true
+categories: [self-improvement, communication]
+---
 
 I came across this [video](https://www.youtube.com/watch?v=Unzc731iCUY) by professor [Patrick Winston](https://en.wikipedia.org/wiki/Patrick_Winston) on how to speak.
 
