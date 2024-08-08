@@ -4,7 +4,7 @@ Outlier conference 2024 by Data Visualization Society happened between 12th to 1
 
 Though I haven't gone through [all the recordings](https://www.youtube.com/playlist?list=PLAm5TIX-yz7Jl5pAJpk8Gb3rZNLnJ69NO) two of my favourites are as below
 
-[Opening keynote](https://www.youtube.com/playlist?list=PLAm5TIX-yz7Jl5pAJpk8Gb3rZNLnJ69NO) by Steve Franconeri and [How to choose a chart type it's trickier than you think](https://youtu.be/8yGHMEkpf9c?si=4rFX5JzCBNDKcWYi) by Nick Desbarats
+[Opening keynote](https://youtu.be/OdHLpZQF-Zs?si=wlXTBTbEyMZP0SXe) by Steve Franconeri and [How to choose a chart type it's trickier than you think](https://youtu.be/8yGHMEkpf9c?si=4rFX5JzCBNDKcWYi) by Nick Desbarats
 
 
 If you are remotely connected to the world of data visualization or create a chart as part of your profession just simply go and watch these.
