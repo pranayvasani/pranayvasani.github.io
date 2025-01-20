@@ -8,6 +8,6 @@ It is called [voice access](https://support.microsoft.com/en-us/topic/get-starte
 
 Configure it how you wish and save your keystrokes.
 
-Just highlight the application or jeep it in focus where you want output of dictation to go and I must say quality is really good. 
+Just highlight the application or keep it in focus where you want output of dictation to go and I must say quality is really good. 
 
-It can also run commands pretty cool.
+It can also run commands, pretty cool!
