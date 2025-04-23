@@ -7,7 +7,8 @@ Go through how to use it and its limitations (link above) before reading further
 This is just a first attempt getting familiarized with AI Function so I would like to play around more to understand its strengths/weaknesses/limitations/behavior etc.
 
 Usecase 1: Synonym generation
-![syngen](\..\images\syn_gen.png)
+
+![syngen](https://github.com/user-attachments/assets/9dc3d28d-90e3-49a4-9d47-38001c6c5465)
 
 Usecase 2: Named entity recognition
 
