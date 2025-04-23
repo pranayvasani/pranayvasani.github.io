@@ -16,13 +16,13 @@ Of course synonym generation with such patterns where for a given Doctor name (F
 
 This one is interesting where if you want to extract out proper nouns or named entities from a sentence or piece of text then this function comes in handy. Though I haven't tried it with lot many examples but I am expecting it to be more often to be correct than incorrect.
 
-![ner](https://github.com/user-attachments/assets/0fbe127b-b207-49a1-871f-0d9627ea82c1)
+![ner](/images/ner.png)
 
 ## Usecase 3: Paraphrase generation
 
 LLMs are good at parpaphrase generation so having this feature in a spreadsheet is really handy for those who don't want to go through hassle of going via code/API route to create variations of the sentence or piece of text.
 
-![paragen](https://github.com/user-attachments/assets/0d98495c-698f-4c7f-b637-a9bd9cc61d78)
+![paragen](/images/paragen.png)
 
 ## Usecase 4: Intent detection
 
@@ -30,11 +30,11 @@ Again strenght of LLMs is in detecting the intent for a piece of text. Notice ho
 
 With prompt highlighted
 
-![id1](https://github.com/user-attachments/assets/363eb0ea-b94c-4b9d-9335-d476e8674926)
+![id1](/images/id1.png)
 
 With output highlighted
 
-![id2](https://github.com/user-attachments/assets/f4fc01bb-c3a5-420c-ba3f-77c2196bd93d)
+![id2](/images/id2.png)
 
 ## Usecase 5: JSON parsing/value extraction
 
@@ -42,8 +42,8 @@ This one was a delight for me where I just pasted a nested JSON structure and wa
 
 Extracting values of keys
 
-![key](https://github.com/user-attachments/assets/a240fdff-4bf8-4c41-a53f-83e040b82222)
+![key](/images/key.png)
 
 Flattening out the entire nested JSON structure
 
-![flatten](https://github.com/user-attachments/assets/e29545ab-4a18-4da8-9620-0db079046254)
+![flatten](/images/flatten.png)
