@@ -10,7 +10,7 @@ This is just a first attempt getting familiarized with AI Function so I would li
 
 Of course synonym generation with such patterns where for a given Doctor name (First and Last) one needs to create variations as first name, last name, Dr./Dr first name or last name can easily be done using formulae but might require sometime to figure out formula, now one can reply on AI to do it quickly as at the end of the day it is a textual output
 
-![syngen](https://github.com/user-attachments/assets/9dc3d28d-90e3-49a4-9d47-38001c6c5465)
+![syngen](../images/syn_gen.png)
 
 ## Usecase 2: Named entity recognition
 
