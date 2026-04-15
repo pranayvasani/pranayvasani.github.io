@@ -36,3 +36,18 @@ kramdown:
   auto_ids: true
   hard_wrap: false
   syntax_highlighter: rouge
+
+defaults:
+  - scope:
+      path: ""
+      type: "posts"
+    values:
+      layout: "post"
+  - scope:
+      path: "index.md"
+    values:
+      layout: "home"
+  - scope:
+      path: "about.md"
+    values:
+      layout: "default"

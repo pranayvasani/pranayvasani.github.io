@@ -1,0 +1,26 @@
+---
+layout: default
+---
+
+<article class="post">
+
+  <header class="post-header">
+    <div class="post-meta">
+      <time datetime="{{ page.date | date_to_xmlschema }}">
+        {{ page.date | date: "%B %d, %Y" }}
+      </time>
+      <span class="post-meta__sep">&middot;</span>
+      <span>{{ content | number_of_words | divided_by: 200 | plus: 1 }} min read</span>
+    </div>
+    <h1 class="post-title">{{ page.title | escape }}</h1>
+  </header>
+
+  <div class="post-content">
+    {{ content }}
+  </div>
+
+  <footer class="post-footer">
+    <a href="{{ '/' | relative_url }}" class="back-link">&larr; Back to all posts</a>
+  </footer>
+
+</article>
