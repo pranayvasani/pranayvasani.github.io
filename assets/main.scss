@@ -5,9 +5,54 @@
 
 /* === Improvements layered on top of Minima === */
 
-/* Better fonts — system stack with optional Google Fonts enhancement */
+/* Better fonts — system stack */
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+}
+
+/* ── PV Badge in header ───────────────────────── */
+.site-brand {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  line-height: 1;
+}
+
+.site-brand:hover {
+  text-decoration: none;
+}
+
+.site-brand__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: #1a6e5c;
+  color: #fff;
+  border-radius: 7px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+/* Hide Minima's auto-generated .site-title since we use .site-brand */
+.site-title { display: none; }
+
+/* ── Footer ───────────────────────────────────── */
+.site-footer__text {
+  font-size: 0.85rem;
+  color: #828282;
+  margin: 0;
+}
+
+.site-footer__text a {
+  color: #828282;
+}
+
+.site-footer__text a:hover {
+  color: #1a6e5c;
+  text-decoration: none;
 }
 
 /* Slightly wider content column */
