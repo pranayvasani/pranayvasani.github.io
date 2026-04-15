@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="{{ page.lang | default: site.lang | default: "en" }}">
+  {%- include head.html -%}
+  <body>
+
+    <header class="site-header">
+      <div class="site-header__inner">
+        <a class="site-title" href="{{ "/" | relative_url }}">
+          <span class="site-title__initials">PV</span>
+          <span class="site-title__text">{{ site.title | escape }}</span>
+        </a>
+        <nav class="site-nav">
+          <a href="{{ "/" | relative_url }}" class="nav-link">Posts</a>
+          <a href="{{ "/about" | relative_url }}" class="nav-link">About</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="site-main">
+      {{ content }}
+    </main>
+
+    <footer class="site-footer">
+      <div class="site-footer__inner">
+        <p class="site-footer__tagline">{{ site.description | escape }}</p>
+        <div class="site-footer__links">
+          <a href="https://github.com/{{ site.github_username | cgi_escape | escape }}" target="_blank" rel="noopener">GitHub</a>
+          {%- if site.linkedin_username -%}
+          <a href="https://linkedin.com/in/{{ site.linkedin_username | cgi_escape | escape }}" target="_blank" rel="noopener">LinkedIn</a>
+          {%- endif -%}
+          <a href="{{ '/feed.xml' | relative_url }}">RSS</a>
+        </div>
+      </div>
+    </footer>
+
+  </body>
+</html>

@@ -1,6 +1,17 @@
-# About
+---
+layout: default
+title: About
+---
 
-* Pranay Vasani 
-* Mumbaikar living in Pune
-* Still discovering my journey
-* Family man
+<div class="about-page">
+
+<h1>About</h1>
+
+<ul>
+  <li>Pranay Vasani</li>
+  <li>Mumbaikar living in Pune</li>
+  <li>Still discovering my journey</li>
+  <li>Family man</li>
+</ul>
+
+</div>

@@ -1,0 +1,31 @@
+---
+layout: default
+---
+
+<div class="home">
+  {%- if content and content != "" -%}
+  <p class="home-intro">{{ content | strip_html | strip }}</p>
+  {%- endif -%}
+
+  <h2 class="posts-heading">Writing</h2>
+
+  <div class="post-grid">
+    {%- for post in site.posts -%}
+    <article class="post-card">
+      <a href="{{ post.url | relative_url }}" class="post-card__link">
+        <div class="post-card__body">
+          <time class="post-card__date" datetime="{{ post.date | date_to_xmlschema }}">
+            {{ post.date | date: "%b %d, %Y" }}
+          </time>
+          <h3 class="post-card__title">{{ post.title | escape }}</h3>
+          {%- assign excerpt_text = post.excerpt | strip_html | strip | truncatewords: 28 -%}
+          {%- if excerpt_text and excerpt_text != "" -%}
+          <p class="post-card__excerpt">{{ excerpt_text }}</p>
+          {%- endif -%}
+        </div>
+        <span class="post-card__arrow">&#8594;</span>
+      </a>
+    </article>
+    {%- endfor -%}
+  </div>
+</div>
