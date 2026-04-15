@@ -1,3 +1,7 @@
+---
+tags: [Technology, AI]
+---
+
 # Dumb Machines
 
 A few days ago when I was reading on a kindle, I liked a feature of kindle showing the meaning of the complex word just on top of it. 

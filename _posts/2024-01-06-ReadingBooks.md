@@ -1,3 +1,7 @@
+---
+tags: [Books, Productivity]
+---
+
 # Reading Books
 
 I want to read more going forward so I just created an account on GoodReads and have taken a challenge of reading atleast 12 books this year. 

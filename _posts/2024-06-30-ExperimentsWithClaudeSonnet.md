@@ -1,3 +1,7 @@
+---
+tags: [AI, Technology]
+---
+
 # Experiments with Claude Sonnet 3.5/Google Gemini
 
 Inspried from [this](https://x.com/minchoi/status/1804928914478993816) tweet I decided to give a spin to Claude Sonnet 3.5.

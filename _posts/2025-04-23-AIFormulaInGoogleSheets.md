@@ -1,3 +1,7 @@
+---
+tags: [AI, Excel, Data]
+---
+
 # AI Function In Google Sheets
 
 Google introduced [AI function](https://support.google.com/docs/answer/15877199?hl=en_SE) in alpha and I gave it a try for a few use cases which I come across on a day to day basis for my work, some of which I solve through formulae.

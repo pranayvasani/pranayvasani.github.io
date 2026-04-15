@@ -5,22 +5,22 @@
 
 /* === Improvements layered on top of Minima === */
 
-/* Better fonts — system stack */
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
 }
 
-/* ── PV Badge in header ───────────────────────── */
+.wrapper {
+  max-width: 740px;
+}
+
+/* ── PV Badge ─────────────────────────────────── */
 .site-brand {
   display: inline-flex;
   align-items: center;
   text-decoration: none;
   line-height: 1;
 }
-
-.site-brand:hover {
-  text-decoration: none;
-}
+.site-brand:hover { text-decoration: none; }
 
 .site-brand__badge {
   display: inline-flex;
@@ -36,7 +36,6 @@ body {
   letter-spacing: 0.03em;
 }
 
-/* Hide Minima's auto-generated .site-title since we use .site-brand */
 .site-title { display: none; }
 
 /* ── Footer ───────────────────────────────────── */
@@ -45,139 +44,16 @@ body {
   color: #828282;
   margin: 0;
 }
+.site-footer__text a { color: #828282; }
+.site-footer__text a:hover { color: #1a6e5c; text-decoration: none; }
 
-.site-footer__text a {
-  color: #828282;
-}
-
-.site-footer__text a:hover {
-  color: #1a6e5c;
-  text-decoration: none;
-}
-
-/* Slightly wider content column */
-.wrapper {
-  max-width: 740px;
-}
-
-/* Cleaner site title */
-.site-title {
-  font-weight: 700;
-  letter-spacing: -0.3px;
-}
-
-/* Subtle header border */
-.site-header {
-  border-bottom: 1px solid #e8e8e8;
-}
-
-/* ── Post list → card style ───────────────────── */
-.post-grid {
-  margin-top: 0.5rem;
-}
-
-.post-card {
-  border-top: 1px solid #e8e8e8;
-  padding: 1.1rem 0;
-}
-
-.post-card:last-child {
-  border-bottom: 1px solid #e8e8e8;
-}
-
-.post-card__link {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  text-decoration: none;
-  color: inherit;
-}
-
-.post-card__link:hover {
-  text-decoration: none;
-}
-
-.post-card__link:hover .post-card__title {
-  color: #1a6e5c;
-}
-
-.post-card__link:hover .post-card__arrow {
-  color: #1a6e5c;
-  transform: translateX(3px);
-}
-
-.post-card__body {
-  flex: 1;
-  min-width: 0;
-}
-
-.post-card__date {
-  display: block;
-  font-size: 0.78rem;
-  color: #828282;
-  margin-bottom: 0.2rem;
-}
-
-.post-card__title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #111;
-  margin: 0 0 0.2rem;
-  transition: color 0.15s ease;
-  line-height: 1.4;
-}
-
-.post-card__excerpt {
-  font-size: 0.85rem;
-  color: #828282;
-  margin: 0;
-  line-height: 1.5;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-.post-card__arrow {
-  color: #ccc;
-  font-size: 1rem;
-  flex-shrink: 0;
-  transition: color 0.15s ease, transform 0.15s ease;
-}
-
-/* ── Post page improvements ───────────────────── */
-.post-header {
-  margin-bottom: 2rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid #e8e8e8;
-}
-
-.post-meta {
-  font-size: 0.8rem;
-  color: #828282;
-  margin-bottom: 0.5rem;
-}
-
-/* Better code blocks */
-pre, code {
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-  font-size: 0.875em;
-}
-
-pre {
-  border-radius: 6px;
-  border: 1px solid #e8e8e8;
-}
-
-/* Nicer blockquotes */
-blockquote {
-  border-left: 3px solid #1a6e5c;
+/* ── Home page ────────────────────────────────── */
+.home-intro {
   color: #555;
   font-style: italic;
+  margin-bottom: 2rem;
 }
 
-/* ── Section heading on home page ─────────────── */
 .posts-heading {
   font-size: 0.7rem;
   font-weight: 600;
@@ -187,78 +63,388 @@ blockquote {
   margin: 0 0 0.5rem;
 }
 
-/* ── Back link on post pages ──────────────────── */
-.back-link {
-  font-size: 0.875rem;
+/* ── Post cards ───────────────────────────────── */
+.post-grid { margin-top: 0.5rem; }
+
+.post-card {
+  border-top: 1px solid #e8e8e8;
+  padding: 1.1rem 0;
+}
+.post-card:last-child { border-bottom: 1px solid #e8e8e8; }
+
+.post-card__link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  text-decoration: none;
+  color: inherit;
+}
+.post-card__link:hover { text-decoration: none; }
+.post-card__link:hover .post-card__title { color: #1a6e5c; }
+.post-card__link:hover .post-card__arrow { color: #1a6e5c; transform: translateX(3px); }
+
+.post-card__body { flex: 1; min-width: 0; }
+
+.post-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.2rem;
+}
+
+.post-card__date, .post-card__read-time, .post-card__sep {
+  font-size: 0.78rem;
   color: #828282;
-  text-decoration: none;
 }
 
-.back-link:hover {
+.post-card__title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111;
+  margin: 0 0 0.25rem;
+  transition: color 0.15s ease;
+  line-height: 1.4;
+}
+
+.post-card__excerpt {
+  font-size: 0.85rem;
+  color: #828282;
+  margin: 0 0 0.4rem;
+  line-height: 1.5;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.post-card__tags { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+
+.post-card__arrow {
+  color: #ccc;
+  font-size: 1rem;
+  flex-shrink: 0;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+/* ── Tag badges ───────────────────────────────── */
+.tag-badge {
+  display: inline-block;
+  padding: 0.2em 0.55em;
+  background: #f0f7f5;
   color: #1a6e5c;
+  border: 1px solid #c8e6e0;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
   text-decoration: none;
+  line-height: 1.4;
+  transition: background 0.15s ease;
+}
+.tag-badge:hover { background: #d6ede8; text-decoration: none; color: #1a6e5c; }
+
+.tag-badge--small {
+  padding: 0.1em 0.4em;
+  font-size: 0.7rem;
 }
 
+/* ── Post page ────────────────────────────────── */
+.post-header {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.post-meta {
+  font-size: 0.8rem;
+  color: #828282;
+  margin-bottom: 0.6rem;
+}
+
+.post-meta-sep { margin: 0 0.25rem; }
+
+.read-time { color: #828282; }
+
+.post-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+/* ── Reading progress bar ─────────────────────── */
+#reading-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0%;
+  height: 3px;
+  background: #1a6e5c;
+  z-index: 9999;
+  transition: width 0.1s linear;
+}
+
+/* ── Related posts ────────────────────────────── */
+.related-posts {
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e8e8e8;
+}
+
+.related-posts__heading {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #aaa;
+  margin: 0 0 1rem;
+}
+
+.related-posts__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.related-posts__list li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.related-posts__list li:last-child { border-bottom: none; }
+
+.related-posts__list a {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #333;
+  text-decoration: none;
+}
+.related-posts__list a:hover { color: #1a6e5c; }
+
+.related-posts__date {
+  font-size: 0.78rem;
+  color: #aaa;
+  flex-shrink: 0;
+}
+
+/* ── Post footer ──────────────────────────────── */
 .post-footer {
   margin-top: 3rem;
   padding-top: 1.5rem;
   border-top: 1px solid #e8e8e8;
 }
 
+.back-link { font-size: 0.875rem; color: #828282; text-decoration: none; }
+.back-link:hover { color: #1a6e5c; text-decoration: none; }
+
+/* ── Code blocks ──────────────────────────────── */
+pre, code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.875em;
+}
+pre { border-radius: 6px; border: 1px solid #e8e8e8; }
+
+/* ── Blockquotes ──────────────────────────────── */
+blockquote { border-left: 3px solid #1a6e5c; color: #555; font-style: italic; }
+
+/* ── Topics page ──────────────────────────────── */
+.page-title {
+  margin-bottom: 0.25rem;
+}
+
+.page-subtitle {
+  font-size: 0.9rem;
+  color: #828282;
+  margin-bottom: 2rem;
+}
+
+.topic-section {
+  margin-bottom: 2.5rem;
+}
+
+.topic-heading {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e8e8e8;
+}
+
+.topic-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  background: #1a6e5c;
+  color: #fff;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0 0.4em;
+}
+
+.topic-posts {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.topic-post {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+.topic-post:last-child { border-bottom: none; }
+.topic-post a { font-size: 0.95rem; color: #333; text-decoration: none; }
+.topic-post a:hover { color: #1a6e5c; }
+
+.topic-post-date {
+  font-size: 0.78rem;
+  color: #aaa;
+  flex-shrink: 0;
+}
+
+/* ── Archive page ─────────────────────────────── */
+.archive-year { margin-bottom: 2.5rem; }
+
+.archive-year__heading {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e8e8e8;
+}
+
+.archive-year__posts {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.archive-post {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+.archive-post:last-child { border-bottom: none; }
+
+.archive-post__date {
+  font-size: 0.78rem;
+  color: #aaa;
+  flex-shrink: 0;
+  width: 48px;
+}
+
+.archive-post__title { font-size: 0.95rem; color: #333; text-decoration: none; flex: 1; }
+.archive-post__title:hover { color: #1a6e5c; }
+
+.archive-post__tags { display: flex; flex-wrap: wrap; gap: 0.25rem; flex-shrink: 0; }
+
+/* ── Search page ──────────────────────────────── */
+.search-box {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.7rem 2.5rem 0.7rem 1rem;
+  font-size: 1rem;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.search-input:focus { border-color: #1a6e5c; }
+
+.search-icon {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #aaa;
+  pointer-events: none;
+}
+
+.search-status {
+  font-size: 0.85rem;
+  color: #828282;
+  margin-bottom: 1.5rem;
+}
+
+.search-results { list-style: none; padding: 0; margin: 0; }
+
+.search-result {
+  padding: 1rem 0;
+  border-bottom: 1px solid #e8e8e8;
+}
+.search-result:last-child { border-bottom: none; }
+
+.search-result__title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+  text-decoration: none;
+  display: block;
+  margin-bottom: 0.2rem;
+}
+.search-result__title:hover { color: #1a6e5c; }
+
+.search-result__date {
+  font-size: 0.78rem;
+  color: #aaa;
+  display: block;
+  margin-bottom: 0.3rem;
+}
+
+.search-result__excerpt {
+  font-size: 0.875rem;
+  color: #555;
+  margin: 0;
+  line-height: 1.5;
+}
+
 /* ── Dark mode ────────────────────────────────── */
 @media (prefers-color-scheme: dark) {
-  body {
-    background-color: #111;
-    color: #e0e0e0;
-  }
+  body { background-color: #111; color: #e0e0e0; }
 
-  .site-header,
-  .site-footer {
-    background-color: #111;
-    border-color: #2a2a2a;
-  }
+  .site-header, .site-footer { background-color: #111; border-color: #2a2a2a; }
+  .page-link { color: #ccc; }
+  a { color: #4db89e; }
 
-  .site-title,
-  .site-title:visited {
-    color: #e0e0e0;
-  }
+  .post-card { border-color: #2a2a2a; }
+  .post-card__title { color: #e0e0e0; }
+  .post-card__date, .post-card__read-time, .post-card__excerpt { color: #888; }
+  .post-card__link:hover .post-card__title { color: #4db89e; }
 
-  .page-link {
-    color: #ccc;
-  }
+  .tag-badge { background: #0d2520; border-color: #1a5047; color: #4db89e; }
+  .tag-badge:hover { background: #142e29; }
 
-  a {
-    color: #4db89e;
-  }
+  pre, code { background-color: #1e1e1e; border-color: #2a2a2a; }
+  blockquote { border-color: #4db89e; color: #aaa; }
 
-  .post-card {
-    border-color: #2a2a2a;
-  }
+  .posts-heading, .related-posts__heading, .topic-heading, .archive-year__heading { color: #555; border-color: #2a2a2a; }
+  .topic-post a, .archive-post__title, .related-posts__list a, .search-result__title { color: #ccc; }
+  .topic-post a:hover, .archive-post__title:hover, .related-posts__list a:hover, .search-result__title:hover { color: #4db89e; }
 
-  .post-card__title {
-    color: #e0e0e0;
-  }
-
-  .post-card__date,
-  .post-card__excerpt {
-    color: #888;
-  }
-
-  .post-card__link:hover .post-card__title {
-    color: #4db89e;
-  }
-
-  pre, code {
-    background-color: #1e1e1e;
-    border-color: #2a2a2a;
-  }
-
-  blockquote {
-    border-color: #4db89e;
-    color: #aaa;
-  }
-
-  .posts-heading {
-    color: #555;
-  }
+  .topic-post, .archive-post, .related-posts__list li { border-color: #222; }
+  .search-input { background: #1a1a1a; color: #e0e0e0; border-color: #2a2a2a; }
+  .search-input:focus { border-color: #4db89e; }
+  .search-result { border-color: #2a2a2a; }
+  .search-result__excerpt { color: #888; }
 }

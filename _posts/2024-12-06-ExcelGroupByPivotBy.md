@@ -1,3 +1,7 @@
+---
+tags: [Excel, Data]
+---
+
 
 # Excel Group By and Pivot By
 

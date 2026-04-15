@@ -1,3 +1,7 @@
+---
+tags: [Data, Productivity]
+---
+
 # Outlier Conference 2024
 
 Outlier conference 2024 by Data Visualization Society happened between 12th to 14th June 2024.

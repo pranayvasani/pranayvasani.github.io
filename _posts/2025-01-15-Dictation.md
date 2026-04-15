@@ -1,3 +1,7 @@
+---
+tags: [Technology, Productivity]
+---
+
 # Dictation in MS Windows
 
 I started seeing lot of people have started saving their keystrokes and instead rely on speech-to-text capabilities on their machine for dictation purposes.

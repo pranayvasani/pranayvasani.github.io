@@ -1,3 +1,7 @@
+---
+tags: [Productivity, Business]
+---
+
 # How to be successful by Sam Altman
 
 If you haven't read this already then I would definitely recommend reading Sam Altman's classic [blog](https://blog.samaltman.com/how-to-be-successful) on how to be successful. 

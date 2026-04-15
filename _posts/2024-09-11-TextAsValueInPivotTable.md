@@ -1,3 +1,7 @@
+---
+tags: [Excel, Data]
+---
+
 # Text as value in MS Excel Pivot table 
 
 I was doing an analysis of who is assigned to which all client projects in my team based on timesheet data.

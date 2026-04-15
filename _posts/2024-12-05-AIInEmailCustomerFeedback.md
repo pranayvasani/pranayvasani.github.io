@@ -1,3 +1,7 @@
+---
+tags: [AI, Business]
+---
+
 
 # AI at help for extracting customer feedback 
 

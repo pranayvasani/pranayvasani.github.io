@@ -1,0 +1,71 @@
+---
+layout: default
+---
+
+<div id="reading-progress"></div>
+
+<article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">{{ page.title | escape }}</h1>
+    <p class="post-meta">
+      <time datetime="{{ page.date | date_to_xmlschema }}" itemprop="datePublished">
+        {{ page.date | date: "%B %d, %Y" }}
+      </time>
+      <span class="post-meta-sep">&middot;</span>
+      <span class="read-time">{{ content | number_of_words | divided_by: 200 | plus: 1 }} min read</span>
+    </p>
+    {% if page.tags and page.tags.size > 0 %}
+    <div class="post-tags">
+      {% for tag in page.tags %}
+      <a href="{{ '/topics' | relative_url }}#{{ tag | downcase | replace: ' ', '-' }}" class="tag-badge">{{ tag }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    {{ content }}
+  </div>
+
+  {% if page.tags and page.tags.size > 0 %}
+  {% assign related_posts = "" | split: "" %}
+  {% for tag in page.tags %}
+    {% assign tag_posts = site.tags[tag] %}
+    {% for rpost in tag_posts %}
+      {% unless rpost.url == page.url %}
+        {% assign related_posts = related_posts | push: rpost %}
+      {% endunless %}
+    {% endfor %}
+  {% endfor %}
+  {% assign related_posts = related_posts | uniq %}
+  {% if related_posts.size > 0 %}
+  <div class="related-posts">
+    <h3 class="related-posts__heading">Related posts</h3>
+    <ul class="related-posts__list">
+      {% for rpost in related_posts limit: 3 %}
+      <li>
+        <a href="{{ rpost.url | relative_url }}">{{ rpost.title | escape }}</a>
+        <span class="related-posts__date">{{ rpost.date | date: "%b %Y" }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+  {% endif %}
+
+  <div class="post-footer">
+    <a href="{{ '/' | relative_url }}" class="back-link">&larr; Back to all posts</a>
+  </div>
+
+</article>
+
+<script>
+  window.addEventListener('scroll', function () {
+    var el = document.getElementById('reading-progress');
+    if (!el) return;
+    var scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+    var scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+    el.style.width = scrollHeight > 0 ? (scrollTop / scrollHeight * 100) + '%' : '0%';
+  });
+</script>

@@ -1,3 +1,7 @@
+---
+tags: [Productivity, Business]
+---
+
 # Time In Meetings
 
 Ever since full time remote work has started (post COVID) the number of meetings have increased drastically at workplace. It is also the by product of the role that I am playing in my team now, less of an individual contributor more of problem solver and ensuring things are moving in right direction for the team.

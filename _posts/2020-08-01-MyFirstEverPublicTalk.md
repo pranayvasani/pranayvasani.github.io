@@ -1,3 +1,7 @@
+---
+tags: [Personal, Speaking]
+---
+
 # My First Ever Public Talk
 
 A couple of months ago, I gave my first ever Virtual Public Talk.

@@ -1,3 +1,7 @@
+---
+tags: [AI, Productivity]
+---
+
 
 # AI at help while writing email
 

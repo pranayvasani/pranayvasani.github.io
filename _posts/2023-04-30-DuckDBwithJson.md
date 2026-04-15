@@ -1,3 +1,7 @@
+---
+tags: [Technology, Data]
+---
+
 # Playing with JSON in DuckDB
 
 With all the hype around DuckDB nowadays, just felt like exploring it for fun. This will not be a one off post, I plan to convert this learning with some meaningful exercise.

@@ -1,0 +1,62 @@
+---
+layout: default
+title: Search
+permalink: /search
+---
+
+<h1 class="page-title">Search</h1>
+
+<div class="search-box">
+  <input type="text" id="search-input" class="search-input" placeholder="Search posts..." autofocus>
+  <span class="search-icon">&#128269;</span>
+</div>
+
+<p id="search-status" class="search-status"></p>
+
+<ul id="search-results" class="search-results"></ul>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lunr.js/2.3.9/lunr.min.js"></script>
+<script>
+  var searchIndex, searchData;
+
+  fetch('{{ "/search.json" | relative_url }}')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      searchData = data;
+      searchIndex = lunr(function() {
+        this.ref('url');
+        this.field('title', { boost: 10 });
+        this.field('tags', { boost: 5 });
+        this.field('excerpt');
+        data.forEach(function(post) { this.add(post); }, this);
+      });
+      document.getElementById('search-status').textContent = data.length + ' posts indexed.';
+    });
+
+  document.getElementById('search-input').addEventListener('input', function() {
+    var query = this.value.trim();
+    var results = document.getElementById('search-results');
+    var status = document.getElementById('search-status');
+    results.innerHTML = '';
+
+    if (!query || query.length < 2) {
+      status.textContent = searchData ? searchData.length + ' posts indexed.' : '';
+      return;
+    }
+
+    var hits = searchIndex ? searchIndex.search(query + '*') : [];
+    status.textContent = hits.length + ' result' + (hits.length !== 1 ? 's' : '') + ' for "' + query + '"';
+
+    hits.forEach(function(hit) {
+      var post = searchData.find(function(p) { return p.url === hit.ref; });
+      if (!post) return;
+      var li = document.createElement('li');
+      li.className = 'search-result';
+      li.innerHTML =
+        '<a href="' + post.url + '" class="search-result__title">' + post.title + '</a>' +
+        '<span class="search-result__date">' + post.date + '</span>' +
+        '<p class="search-result__excerpt">' + post.excerpt + '</p>';
+      results.appendChild(li);
+    });
+  });
+</script>
