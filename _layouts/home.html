@@ -4,10 +4,10 @@ layout: default
 
 <div class="home">
   {%- if content and content != "" -%}
-  <p class="home-intro">{{ content | strip_html | strip }}</p>
+  <p style="color:#828282; font-style:italic; margin-bottom:2rem;">{{ content | strip_html | strip }}</p>
   {%- endif -%}
 
-  <h2 class="posts-heading">Writing</h2>
+  <p class="posts-heading">Writing</p>
 
   <div class="post-grid">
     {%- for post in site.posts -%}
@@ -17,9 +17,9 @@ layout: default
           <time class="post-card__date" datetime="{{ post.date | date_to_xmlschema }}">
             {{ post.date | date: "%b %d, %Y" }}
           </time>
-          <h3 class="post-card__title">{{ post.title | escape }}</h3>
-          {%- assign excerpt_text = post.excerpt | strip_html | strip | truncatewords: 28 -%}
-          {%- if excerpt_text and excerpt_text != "" -%}
+          <div class="post-card__title">{{ post.title | escape }}</div>
+          {%- assign excerpt_text = post.excerpt | strip_html | strip | truncatewords: 25 -%}
+          {%- if excerpt_text != "" -%}
           <p class="post-card__excerpt">{{ excerpt_text }}</p>
           {%- endif -%}
         </div>

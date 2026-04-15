@@ -4,9 +4,21 @@ layout: default
 title: Page Not Found
 ---
 
-<div class="error-page">
+<style>
+  .not-found {
+    text-align: center;
+    padding: 4rem 0;
+  }
+  .not-found h1 {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    color: #1a6e5c;
+  }
+</style>
+
+<div class="not-found">
   <h1>404</h1>
   <p><strong>Page not found.</strong></p>
-  <p>The requested page could not be found.</p>
-  <a href="{{ '/' | relative_url }}" class="back-link">&larr; Back to home</a>
+  <p>The page you were looking for doesn't exist.</p>
+  <p><a href="{{ '/' | relative_url }}">&larr; Back to home</a></p>
 </div>
