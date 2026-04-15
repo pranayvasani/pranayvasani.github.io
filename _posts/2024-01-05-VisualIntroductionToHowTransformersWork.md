@@ -1,3 +1,7 @@
+---
+tags: [AI, Technology]
+---
+
 # Visual Introduction To How Transformers Work
 
 I came across a very visually intuitive and a simple explanation of how [transformers](https://ig.ft.com/generative-ai/) work by Financial Times.

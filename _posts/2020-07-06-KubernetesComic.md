@@ -1,3 +1,7 @@
+---
+tags: [Technology]
+---
+
 # Kubernetes as a Comic
 The best explnation that I have seen off late, kubernetes explained as a [comic](https://cloud.google.com/kubernetes-engine/kubernetes-comic/)
 

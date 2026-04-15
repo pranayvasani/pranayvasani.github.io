@@ -1,3 +1,7 @@
+---
+tags: [AI, Business]
+---
+
 # GenAI Powering Hotel Review Flow
 
 My parents are visiting Rajshthan and they completed their stay in one of the hotels at Jaipur.

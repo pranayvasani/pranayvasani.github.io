@@ -1,3 +1,7 @@
+---
+tags: [AI, Technology]
+---
+
 # Dall-E Experiments
 
 With all happening in AI space at the moment with chatGPT, Stable Diffusion etc. I decided to explore OpenAI and Dall-E to begin with.

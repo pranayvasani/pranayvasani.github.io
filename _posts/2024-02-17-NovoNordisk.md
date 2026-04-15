@@ -1,3 +1,7 @@
+---
+tags: [Business]
+---
+
 # Novo Nordisk
 
 I came across this [blog](https://www.acquired.fm/episodes/novo-nordisk-ozempic) on the history of Novo Nordisk's 100 years as a company.

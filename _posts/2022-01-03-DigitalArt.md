@@ -1,3 +1,7 @@
+---
+tags: [Personal, Technology]
+---
+
 # Experiments with Digital Art
 
 Inspried from my son's ability to draw masterfully on paper as well as on digital medium, I decided to try my hands on digital art. Ever since I saw [Procreate](https://procreate.art/) in action, I had decided to buy my son an iPad with magic pencil and 

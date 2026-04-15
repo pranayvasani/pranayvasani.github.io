@@ -1,3 +1,7 @@
+---
+tags: [Books, Personal]
+---
+
 # Book Review Siddhartha
 
 Based on Naval's recommendation I read [Siddhartha by Herman Hesse](https://www.amazon.in/Siddhartha-Hermann-Hesse/dp/0553208845).

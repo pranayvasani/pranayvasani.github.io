@@ -1,3 +1,7 @@
+---
+tags: [Books, Personal]
+---
+
 # Reading on Amazon Kindle
 
 One of the goals for 2021 that I have for myself is to start reading more. My goal is to read one book a month which means by the end of the year I would have read 12 books. I had purchased Amazon kindle long back but except couple of books I hadn't read much on it.
