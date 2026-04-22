@@ -10,11 +10,11 @@ Behind every prescription lies a complex journey—insurance approvals, affordab
 
 Let’s break it down in a simple way.
 
-> **Sketch note overview**
->
-> ![Patient Support Program (PSP) sketch note overview](/images/psp-sketch-note.svg)
->
-> *High-level visual summary of the end-to-end PSP journey and key business metrics.*
+## Sketch note overview
+
+![Patient Support Program (PSP) sketch note overview](/images/psp-sketch-note.png)
+
+*High-level visual summary of the end-to-end PSP journey and key business metrics.*
 
 ---
 
