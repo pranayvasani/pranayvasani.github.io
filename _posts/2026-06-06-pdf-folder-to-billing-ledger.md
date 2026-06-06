@@ -50,3 +50,15 @@ Every step above — PDF extraction, arrears chain reconstruction, payment recon
 The interesting moments weren't the automation. They were the reasoning: explaining *why* the naive outstanding balance was wrong, tracing which arrears chain cleared which prior bill, identifying the failed payment from the absence of a Gmail confirmation. Those required understanding the billing structure, not just parsing fields.
 
 The spreadsheet at the end has every bill, every payment source, and every discrepancy documented in one place. The entire reconciliation — years of billing history, untouched until today — was sorted out in a single session using Cowork.
+
+---
+
+## What I liked
+
+- Claude used Rupees as the currency throughout, without having to be told
+- Created nice visualizations of monthly consumption volume and rupees spent
+- The reasoning to reconcile across three sources — PDFs, portal history, and Gmail receipts — held up under scrutiny
+
+## What Claude could improve at
+
+- Chart polish: legends were missing, data labels were absent, and the chart title box wasn't clearly visible
