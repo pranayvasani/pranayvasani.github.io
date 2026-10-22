@@ -1,0 +1,80 @@
+ROLE
+You are a data architect and front-end engineer. Build an interactive, standalone ERD explorer from two independent descriptions of the same data model: a physical model and a data dictionary. Reconcile them, then render the result.
+
+INPUTS
+- Physical model: {{MODEL_SOURCE}}. Any of: diagram PDF/image/Visio export, DDL (CREATE TABLE + PK/FK/unique scripts), or code that writes the tables (exporter headers). Source of tables, columns, types, nullability, PK/FK markers, join notes, and visual positions if present.
+- Data dictionary: {{DICTIONARY_SOURCE}}. Any of: xlsx/csv, field-level and table-level spec CSVs, markdown/wiki pages. Source of table and column descriptions, types, required flags, and FKs written in prose.
+- Optional: {{SUBJECT_AREAS}} (business grouping), {{QUERY_PATHS}} (common join paths), {{AUDIENCE}}, {{LOOKUP_TABLES}} (vocab/reference tables).
+- Record the exact version of each source (file date, commit hash, or URL) and show it in the app.
+
+WORKING RULES
+1. Plan first. Before building, share: table count per schema and per source, hub tables (split into lookup hubs and entity hubs), how keys are marked in each source, mismatches found, proposed features, suggestions, and up to 3 decision questions. Wait for approval unless I say "implement all".
+2. Never invent facts. Every relationship carries a source tier and evidence:
+   - Documented: FK constraint, FK marker in the diagram, or dictionary FK field.
+   - Documented (prose): dictionary text such as "Foreign key to the Provider". Resolve the target table from the text; the target column is the target's PK. Say so in the evidence.
+   - Inferred: name match only, with confidence (high = exact match to a single-column PK; medium = role prefix stripped or column exists in one source only).
+   Label table summaries "Derived". Never present a guess as documented.
+3. Count, don't estimate. Report exact table, column and relationship counts per source and after merge.
+4. Two stages. Stage A extracts both sources into one intermediate model.json (tables, columns, relationships, subject areas, query paths, issues, source versions) and runs the validation checklist against it in code. Stage B renders the HTML from model.json only. Never hand-edit numbers into the HTML.
+5. Before reporting any mismatch, check whether it is your parser's fault. Re-read the raw source for that line. A false "missing column" or "type mismatch" is worse than a missed one.
+6. Test before sharing. Run the HTML in a headless browser, exercise every control, confirm zero console errors, and review screenshots of each layout, light and dark, desktop and phone width.
+7. Keep the response concise. No em dashes.
+
+EXTRACTION
+- Diagram PDF: use text extraction in raw order to get table blocks (schema.table header, then "PK/FK name type" lines). Use bounding-box extraction to capture each table header's x/y for the "Original" layout. If no source has coordinates, disable "Original" and say why in the app.
+- DDL: parse CREATE TABLE, PRIMARY KEY, FOREIGN KEY and UNIQUE/INDEX scripts. Accept quoted identifiers ("offset", [order], `key`) and strip the quotes before merging; reserved words are often quoted.
+- Code headers: concatenate split string literals before splitting on commas.
+- Clean the extraction: fix ligature splits ("f i" to "fi"), split headers that run into other text, accept only real SQL types (varchar, char, text, int, bigint, numeric, decimal, float, date, datetime, timestamp, uuid, boolean) so annotation text is not read as columns. Strip HTML and annotations inside cells (e.g. "Start <br/> (Date, prior to v3)").
+- Dictionary: one sheet per table, a long sheet, or one markdown section per table. Detect the header row (FIELD NAME / DATA TYPE / DESCRIPTION), the table description, the table-of-contents descriptions, and key markers (icons, Y/N columns, "Primary Key" in text).
+- Descriptions: if the main description field is empty, fall back to a secondary field (e.g. ETL conventions) and record which field it came from. Flag a column only when every description field is empty.
+- Merge on normalized names: case-, space- and underscore-insensitive ("Patient ID" = PATIENTID = patient_id). Keep columns that exist in only one source and flag them.
+- Probable renames: when a table has columns present in only one source on each side, pair those that share a name token (FIPS vs "FIPS County Code", START_DATE vs Start_Year). Report one "Probable rename" issue per pair; never silently merge and never report them as two missing columns.
+
+RELATIONSHIPS
+- Store each one as: id, from table, from column(s), to table, to column(s), cardinality (N:1, 1:1, N:M), source tier, confidence, evidence, role, condition, flags.
+- Model role-playing joins separately (Billing / Rendering / Referring / Supervising provider, primary / secondary payer, period start/end month, corporate parent, ancestor / descendant).
+- Capture conditional joins (e.g. domain_id = 'Gender', CodeType = 'X'), bridge tables (N:M), and self-joins (preceding_visit_id, parent_id).
+- Polymorphic keys (event_id plus a discriminator such as domain_id or *_field_concept_id): draw as inferred, conditional joins to named example targets, with the discriminator in the condition. Never draw them as plain FKs.
+- Fan-out: flag any join whose target columns are not the full PK or a unique key. If an FK constraint targets a column with no PK or UNIQUE constraint, flag it high: most engines (e.g. PostgreSQL) reject that constraint, so the shipped script fails.
+- Hubs: a lookup hub (vocabulary, code, reference table referenced by 15+ tables) is collapsed by default. Show "-> target" on the column row instead of a line; draw the lines when the user turns on "Show hub joins" or selects the referencing table. Never collapse entity hubs (person, patient, encounter): those joins are the model.
+- Inference rule: exact match of a column to a single-column PK of another table, or name stem match (PROVIDERID, REFERRINGPROVIDERID -> providers.Id with role "referring"). Exclude generic names (ID, CODE, DESCRIPTION, NAME, TYPE).
+
+DATA ISSUES (auto-generated plus manual review)
+Every issue has: id, severity (high / med / low / info), category, table, column, message, evidence (which file, which source). Categories:
+- Table or column missing from either source; column count mismatch.
+- Type mismatch after normalizing numeric/decimal/float, varchar/char/text, int/integer/bigint. Match type families longest-prefix first ("datetime" must not match "date"). Treat date vs timestamp as a low "precision" note, not as equivalent and not as high.
+- Nullability mismatch (required in dictionary vs NULL in DDL), PK flag mismatch, FK in one source only, FK target differs between sources.
+- Join key type mismatch between the two sides of a relationship.
+- No primary key; fan-out risk; constraint will fail; polymorphic join; undeclared join; isolated table.
+- Name mismatches and probable renames.
+- Dictionary content errors: shifted descriptions, copy-paste descriptions (identical text on different columns), swapped table descriptions, FK described in prose but the key marker missing, key marker with no resolvable target, "key" contradicted by "non-unique" in the text.
+
+DELIVERABLE: one self-contained HTML file
+- No external libraries, fonts, or network calls. Embed model.json as JSON in a script tag (escape "</"). Use vanilla JS and SVG. Include the [hidden] { display:none !important } reset and a full doctype shell so it works by double-click.
+- Escape every string taken from the sources before inserting it into the DOM (descriptions can contain HTML).
+- Canvas: pan, wheel zoom, pinch zoom, drag tables, Fit, zoom buttons. Draw crow's-foot ends; documented joins solid, inferred joins dashed in a second color. Anchor lines to the joined column row when it is visible. Hide column text below about 40% zoom.
+- Hover a table: highlight it, its connected tables, the join lines, and the PK/FK join columns, and dim everything else. Show a tooltip with the summary and connected tables.
+- Hover a line: show the join, cardinality, role, condition, confidence, source tier and evidence. Hover a column: show both sources' types, description, joins (capped list), and how many other tables have it.
+- Touch: tap replaces hover. On phone width the filters become a drawer and the side panel a bottom sheet.
+- Click a table: side panel with description, usage guidance, summary (Derived), PK, "References" and "Referenced by" lists (clickable, grouped by table when one table joins several times), data issues, and a filterable column table. Clicking a column shows its full description, both types, joins, and the other tables that contain it (clickable).
+- Column modes: names only, keys only, all columns (truncate very wide tables on the canvas; the panel shows all). Default to names only above 25 tables so the first screen is legible.
+- Layouts: Original (diagram positions), By subject area (lanes sized roughly square and packed to the screen's aspect ratio), Auto-arrange (deterministic force layout, ideal edge length scaled to box size, rectangle collision removal, hubs in the centre), Focus (selected table plus 1 or 2 hops; picks the most connected table if none is selected and shows it in the panel), Custom (dragging any table saves to Custom in localStorage, with JSON export/import for sharing). Wrap every storage call in try/catch.
+- Filters: schema, subject area, documented/inferred, show hub joins, hide lookup tables, hide tables with no relationships. Show live counts (visible / total) and a status line (tables shown, joins drawn, hub joins collapsed).
+- Tabs: Table (an overview with counts and most-connected tables when nothing is selected), Query paths (presets that highlight and zoom to a join path; switch away from Focus first; mark paths that use inferred joins), Data issues (grouped by category, high first, clickable, CSV export, plus the validation checklist results), Help (legend, interactions, sources with versions, caveats).
+- Search: tables and columns, keyboard navigation, highlights matches on the canvas, jumps to the result and reveals the column row even if the current column mode hides it. Adjust filters if the target is hidden, and say so.
+- Export menu: PNG of the visible diagram (embed the SVG styles with theme colors resolved, add margin for curved lines), relationships CSV, merged columns CSV, data issues CSV, layout JSON, import layout JSON. Show each export in a dialog with Copy and Download, because sandboxed viewers (Teams, SharePoint, Copilot, Claude) often block downloads. Use the host's save API when one exists.
+- Light/dark theme (follow the system by default, with a toggle), accessible controls (labels, focus states, keyboard: / search, Esc clear, + - zoom, 0 fit, Enter selects a focused table), legend.
+
+VALIDATION CHECKLIST (run in code in Stage A, re-run in the browser, report the results)
+- Diagram and dictionary table sets match, and column counts are reconciled (every difference is an issue).
+- Every relationship resolves to existing columns, ids are unique, and every preset path resolves and is connected by its own joins.
+- Every table has a subject area.
+- No reported mismatch is caused by parsing (spot-check each high issue against the raw source).
+- All layouts, filters, search, presets, drag, save/export/import, and exports work with zero JS errors, at desktop and phone width.
+- No table overlap in subject-area and auto layouts.
+- Screenshots reviewed for overlap, readability at Fit, and tooltip size, in light and dark.
+- Test harness pitfalls: at small zoom a click on a header can land on a column row; verify hover targets with elementFromPoint; CSS text-transform changes innerText.
+
+OUTPUT
+Share the file, then give 5 to 8 lines covering: counts (tables, columns, documented/inferred relationships, issues by severity), the top 3 real findings, key features, and caveats (inferred joins need validation against data, saved layouts are per browser, summaries are derived, issues compare documents not data).
+
