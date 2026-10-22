@@ -1,0 +1,1261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Synthea CSV Explorer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: drafting-table app. Filter rail | diagram canvas | inspector. Under 900px the rail becomes a drawer and the inspector a bottom sheet. */
+:root{
+  --bg:#F3F5F7; --surface:#FFFFFF; --surface-2:#E9EDF2; --ink:#16212C; --muted:#5A6777; --line:#D3DAE2;
+  --accent:#2950B8; --edge:#3F5266; --inf:#A86200; --hover:rgba(41,80,184,.07); --hlbg:rgba(41,80,184,.14); --lane:rgba(63,82,102,.045);
+  --crit:#B8322A; --warn:#A86200; --low:#5A6777; --info:#24705F; --on-sev:#FFFFFF;
+  --a1:#2950B8; --a2:#24705F; --a3:#8A5A00; --a4:#71489F; --a5:#5A6777; --a6:#A3436B;
+  --ui:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --r:6px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E141A; --surface:#161F28; --surface-2:#1E2A36; --ink:#E3E9F0; --muted:#92A0B0; --line:#2B3846;
+  --accent:#86A6FF; --edge:#8D9FB3; --inf:#E2A445; --hover:rgba(134,166,255,.08); --hlbg:rgba(134,166,255,.18); --lane:rgba(141,159,179,.05);
+  --crit:#EF7A70; --warn:#E2A445; --low:#92A0B0; --info:#5CC0A6; --on-sev:#0E141A;
+  --a1:#86A6FF; --a2:#5CC0A6; --a3:#E2A445; --a4:#B596E6; --a5:#92A0B0; --a6:#E58BB0; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0E141A; --surface:#161F28; --surface-2:#1E2A36; --ink:#E3E9F0; --muted:#92A0B0; --line:#2B3846;
+  --accent:#86A6FF; --edge:#8D9FB3; --inf:#E2A445; --hover:rgba(134,166,255,.08); --hlbg:rgba(134,166,255,.18); --lane:rgba(141,159,179,.05);
+  --crit:#EF7A70; --warn:#E2A445; --low:#92A0B0; --info:#5CC0A6; --on-sev:#0E141A;
+  --a1:#86A6FF; --a2:#5CC0A6; --a3:#E2A445; --a4:#B596E6; --a5:#92A0B0; --a6:#E58BB0; color-scheme:dark }
+[hidden]{display:none!important}
+html{height:100%;box-sizing:border-box}
+*,*::before,*::after{box-sizing:inherit}
+body{height:100%;margin:0;background:var(--bg);color:var(--ink);font:13.5px/1.45 var(--ui);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0}
+#app{height:100%;display:grid;grid-template-rows:auto 1fr;min-height:0}
+button,select,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,.mono{font-family:var(--mono);font-size:.92em}
+
+/* top bar */
+.bar{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;padding-block:10px;border-bottom:1px solid var(--line)}
+.brand{display:flex;gap:10px;align-items:center;min-width:0;flex:1 1 260px}
+.brand svg{flex:none}
+.brand h1{font-size:15px;line-height:1.2;margin:0;font-weight:650;letter-spacing:-.01em;text-wrap:balance}
+.brand p{margin:0;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ctl{height:32px;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:0 10px}
+select.ctl{padding-right:6px}
+.btn{height:32px;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:0 12px;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-right:4px}
+.search{position:relative}
+.search input{width:240px;max-width:100%}
+#qres{position:absolute;z-index:30;top:36px;left:0;width:340px;max-width:86vw;max-height:360px;overflow:auto;margin:0;padding:4px;list-style:none;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:0 10px 30px rgba(0,0,0,.18)}
+#qres li{padding:6px 8px;border-radius:4px;cursor:pointer;display:flex;gap:8px;justify-content:space-between}
+#qres li[aria-selected="true"],#qres li:hover{background:var(--hlbg)}
+#qres .k{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.menu{position:relative}
+.menu ul{position:absolute;right:0;top:36px;z-index:30;list-style:none;margin:0;padding:4px;min-width:230px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:0 10px 30px rgba(0,0,0,.18)}
+.menu li button{width:100%;text-align:left;border:0;background:none;padding:7px 10px;border-radius:4px}
+.menu li button:hover,.menu li button:focus-visible{background:var(--hlbg)}
+.narrow{display:none}
+
+/* main grid */
+main{display:grid;grid-template-columns:230px minmax(0,1fr) 400px;min-height:0;gap:0}
+#filters{border-right:1px solid var(--line);overflow:auto;padding:12px 14px 12px 0;min-height:0}
+#filters h2{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:14px 0 6px;font-weight:600}
+#filters h2:first-child{margin-top:2px}
+.fl{display:flex;align-items:center;gap:8px;padding:3px 0;cursor:pointer}
+.fl input{margin:0;accent-color:var(--accent)}
+.fl .n{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--muted);font-size:12px}
+.sw{width:10px;height:10px;border-radius:2px;flex:none}
+.ar0{background:var(--a1)}.ar1{background:var(--a2)}.ar2{background:var(--a3)}.ar3{background:var(--a4)}.ar4{background:var(--a5)}.ar5{background:var(--a6)}
+.note{font-size:12px;color:var(--muted);margin:6px 0 0}
+
+#stage{position:relative;min-width:0;min-height:0;overflow:hidden;background:var(--bg)}
+#svg{width:100%;height:100%;display:block;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
+#svg.grabbing{cursor:grabbing}
+.zoom{position:absolute;right:12px;top:12px;display:flex;flex-direction:column;gap:4px}
+.zoom .btn{width:36px;justify-content:center;padding:0}
+#status{position:absolute;left:12px;bottom:10px;font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:4px 8px;font-variant-numeric:tabular-nums;max-width:calc(100% - 24px)}
+#legend{position:absolute;right:12px;bottom:10px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:6px 10px;font-size:11.5px;color:var(--muted);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+#legend span{display:inline-flex;gap:6px;align-items:center}
+#tip{position:absolute;z-index:20;pointer-events:none;max-width:340px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:0 8px 24px rgba(0,0,0,.18);padding:8px 10px;font-size:12.5px}
+#tip h4{margin:0 0 2px;font-size:13px}
+#tip .m{color:var(--muted);font-size:11.5px}
+#tip p{margin:4px 0 0}
+#toast{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:6px 12px;border-radius:999px;font-size:12.5px;z-index:25}
+
+/* inspector */
+#panel{border-left:1px solid var(--line);display:grid;grid-template-rows:auto 1fr;min-height:0;background:var(--surface)}
+.tabs{display:flex;border-bottom:1px solid var(--line);overflow-x:auto}
+.tabs button{border:0;background:none;padding:10px 12px;border-bottom:2px solid transparent;color:var(--muted);white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+.tabs .close{margin-left:auto;display:none}
+.pane{overflow:auto;padding:14px 16px 24px;min-height:0}
+.pane h2{font-size:18px;margin:2px 0 4px;font-family:var(--mono);font-weight:600;word-break:break-word}
+.pane h3{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:18px 0 6px;font-weight:600;display:flex;gap:8px;align-items:center}
+.pane p{margin:4px 0}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;border:1px solid var(--line);border-radius:999px;padding:1px 8px;color:var(--muted)}
+.tag{font-size:10px;letter-spacing:.06em;text-transform:uppercase;border:1px dashed var(--muted);border-radius:3px;padding:0 4px;color:var(--muted);font-weight:500}
+.sev{display:inline-block;min-width:44px;text-align:center;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:3px;padding:1px 5px;color:var(--on-sev)}
+.sev.high{background:var(--crit)}.sev.med{background:var(--warn)}.sev.low{background:var(--low)}.sev.info{background:var(--info)}
+.src{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:0 4px;border-radius:3px;border:1px solid}
+.src.doc{color:var(--accent);border-color:var(--accent)}.src.inf{color:var(--inf);border-color:var(--inf);border-style:dashed}
+.lnk{border:0;background:none;padding:0;color:var(--accent);font-family:var(--mono);font-size:12.5px;text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+ul.list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+ul.list li{line-height:1.4}
+.sub{color:var(--muted);font-size:12px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:8px 0 0}
+.kv dt{color:var(--muted);font-size:12px}.kv dd{margin:0;font-family:var(--mono);font-size:12.5px;word-break:break-word}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
+.stat{border:1px solid var(--line);border-radius:var(--r);padding:8px 10px}
+.stat b{display:block;font-size:20px;font-variant-numeric:tabular-nums;line-height:1.1}
+.stat span{font-size:11.5px;color:var(--muted)}
+.ctab{width:100%;border-collapse:collapse;font-size:12.5px}
+.ctab th{text-align:left;font-weight:600;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--line);padding:4px 6px;position:sticky;top:-14px;background:var(--surface)}
+.ctab td{border-bottom:1px solid var(--line);padding:5px 6px;vertical-align:top}
+.ctab tr.r{cursor:pointer}.ctab tr.r:hover td{background:var(--hover)}
+.ctab .nm{font-family:var(--mono);word-break:break-all}
+.ctab .ds{color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ctab tr.x td{background:var(--surface-2);font-size:12.5px}
+.ctab tr.flag .nm{color:var(--warn)}
+.ktag{font:700 9.5px var(--mono);color:var(--accent)}
+.wrap{overflow-x:auto}
+details>summary{cursor:pointer;color:var(--muted)}
+.grp{border:1px solid var(--line);border-radius:var(--r);margin:0 0 8px}
+.grp>summary{padding:8px 10px;display:flex;gap:8px;align-items:center;color:var(--ink);font-weight:600}
+.grp>summary .n{margin-left:auto;color:var(--muted);font-weight:400;font-variant-numeric:tabular-nums}
+.grp ul{padding:0 10px 10px}
+.iss{display:grid;grid-template-columns:auto 1fr;gap:2px 8px;align-items:start}
+.iss .ev{grid-column:2;font-size:11.5px;color:var(--muted)}
+.path{border:1px solid var(--line);border-radius:var(--r);padding:10px;display:grid;gap:4px}
+.path.on{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.path h4{margin:0;font-size:13.5px}
+.chk{display:grid;grid-template-columns:auto 1fr;gap:4px 8px;font-size:12.5px}
+.ok{color:var(--info);font-weight:700}.bad{color:var(--crit);font-weight:700}
+input.filter{width:100%;margin:2px 0 8px}
+
+/* modal */
+#modal{position:fixed;inset:0;z-index:50;background:rgba(10,14,18,.45);display:grid;place-items:center;padding:20px max(16px,env(safe-area-inset-left,0px))}
+#modal .box{background:var(--surface);border:1px solid var(--line);border-radius:10px;width:min(760px,100%);max-height:88%;display:grid;grid-template-rows:auto 1fr auto;min-height:0}
+#modal header,#modal footer{padding:12px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#modal header h2{margin:0;font-size:15px;flex:1}
+#modal .mb{overflow:auto;padding:0 16px;min-height:0}
+#modal textarea{width:100%;min-height:260px;font:12px/1.4 var(--mono);border:1px solid var(--line);border-radius:var(--r);background:var(--bg);padding:8px}
+#modal img{max-width:100%;border:1px solid var(--line);border-radius:var(--r);background:var(--bg)}
+
+@media (max-width:900px){
+  main{grid-template-columns:minmax(0,1fr);position:relative}
+  .narrow{display:inline-flex}
+  .search input{width:170px}
+  #filters{position:absolute;z-index:40;left:0;top:0;bottom:0;width:min(280px,85%);background:var(--surface);padding:12px 14px;border:1px solid var(--line);box-shadow:8px 0 24px rgba(0,0,0,.2);transform:translateX(-110%);transition:transform .2s}
+  #filters.open{transform:none}
+  #panel{position:absolute;z-index:35;left:0;right:0;bottom:0;height:56%;border:1px solid var(--line);border-radius:12px 12px 0 0;box-shadow:0 -8px 24px rgba(0,0,0,.18);transform:translateY(105%);transition:transform .2s;padding-bottom:env(safe-area-inset-bottom,0px)}
+  #panel.open{transform:none}
+  .tabs .close{display:inline-flex;position:sticky;right:0}
+  .tabs button{padding:10px 9px}
+  #legend{display:none}
+}
+@media (max-width:520px){ .lblw{display:none} .brand p{white-space:normal} }
+@media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+</style>
+</head>
+<body>
+
+
+<div id="app">
+  <header class="bar">
+    <div class="brand">
+      <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><rect x="1" y="5" width="11" height="20" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="18" y="5" width="11" height="20" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 15h6M12 11l3 4-3 4M18 12v6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+      <div style="min-width:0"><h1 id="mname"></h1><p id="msub"></p></div>
+    </div>
+    <div class="tools">
+      <div class="search">
+        <input id="q" class="ctl" type="search" placeholder="Search tables, columns  ( / )" aria-label="Search tables and columns" role="combobox" aria-expanded="false" aria-controls="qres" aria-autocomplete="list" autocomplete="off">
+        <ul id="qres" role="listbox" hidden></ul>
+      </div>
+      <label><span class="lbl lblw">Columns</span><select id="colmode" class="ctl" aria-label="Column display">
+        <option value="names">Names only</option><option value="keys">Keys only</option><option value="all">All columns</option></select></label>
+      <label><span class="lbl lblw">Layout</span><select id="layout" class="ctl" aria-label="Layout">
+        <option value="original">Original</option><option value="area">By subject area</option><option value="auto">Auto-arrange</option>
+        <option value="focus">Focus</option><option value="custom">Custom</option></select></label>
+      <select id="hops" class="ctl" aria-label="Focus depth" hidden><option value="1">1 hop</option><option value="2">2 hops</option></select>
+      <div class="menu">
+        <button id="btnExport" class="btn" aria-haspopup="true" aria-expanded="false" aria-controls="exMenu">Export</button>
+        <ul id="exMenu" hidden>
+          <li><button data-ex="png">PNG of visible diagram</button></li>
+          <li><button data-ex="rels">Relationships CSV</button></li>
+          <li><button data-ex="cols">Merged columns CSV</button></li>
+          <li><button data-ex="issues">Data issues CSV</button></li>
+          <li><button data-ex="layout">Layout JSON</button></li>
+          <li><button data-ex="import">Import layout JSON</button></li>
+        </ul>
+      </div>
+      <button id="btnTheme" class="btn" aria-label="Theme: follow system">Theme: Auto</button>
+      <button id="btnFilters" class="btn narrow" aria-controls="filters" aria-expanded="false">Filters</button>
+      <button id="btnPanel" class="btn narrow" aria-controls="panel" aria-expanded="false">Details</button>
+    </div>
+  </header>
+  <main>
+    <aside id="filters" aria-label="Filters"></aside>
+    <section id="stage" aria-label="Diagram">
+      <svg id="svg" role="application" aria-label="Entity relationship diagram. Drag to pan, scroll or pinch to zoom.">
+        <g id="vp"><g id="lanes"></g><g id="edges"></g><g id="nodes"></g></g>
+      </svg>
+      <div class="zoom">
+        <button id="zin" class="btn" aria-label="Zoom in">+</button>
+        <button id="zout" class="btn" aria-label="Zoom out">&minus;</button>
+        <button id="zfit" class="btn" aria-label="Fit diagram to screen" style="font-size:12px">Fit</button>
+      </div>
+      <div id="legend" aria-label="Legend">
+        <span><svg width="34" height="10" aria-hidden="true"><path d="M2 5H32" stroke="var(--edge)" stroke-width="1.6"/></svg>Documented</span>
+        <span><svg width="34" height="10" aria-hidden="true"><path d="M2 5H32" stroke="var(--inf)" stroke-width="1.6" stroke-dasharray="6 4"/></svg>Inferred</span>
+        <span><svg width="26" height="14" aria-hidden="true"><path d="M2 2L12 7L2 12M2 7H24M18 3V11M21 3V11" fill="none" stroke="var(--edge)" stroke-width="1.4"/></svg>many to one</span>
+      </div>
+      <div id="status" aria-live="polite"></div>
+      <div id="tip" role="tooltip" hidden></div>
+      <div id="toast" role="status" hidden></div>
+    </section>
+    <aside id="panel" aria-label="Inspector">
+      <div class="tabs" role="tablist">
+        <button role="tab" id="t-table" aria-controls="p-table" aria-selected="true">Table</button>
+        <button role="tab" id="t-paths" aria-controls="p-paths" aria-selected="false">Query paths</button>
+        <button role="tab" id="t-issues" aria-controls="p-issues" aria-selected="false">Data issues</button>
+        <button role="tab" id="t-help" aria-controls="p-help" aria-selected="false">Help</button>
+        <button class="close btn" id="panelClose" aria-label="Close inspector" style="margin:4px;padding:0 10px;flex:none">&times;</button>
+      </div>
+      <div class="pane" id="p-table" role="tabpanel" aria-labelledby="t-table"></div>
+      <div class="pane" id="p-paths" role="tabpanel" aria-labelledby="t-paths" hidden></div>
+      <div class="pane" id="p-issues" role="tabpanel" aria-labelledby="t-issues" hidden></div>
+      <div class="pane" id="p-help" role="tabpanel" aria-labelledby="t-help" hidden></div>
+    </aside>
+  </main>
+  <div id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="mtitle">
+    <div class="box"><header><h2 id="mtitle"></h2><button class="btn" id="mclose">Close</button></header><div class="mb" id="mbody"></div><footer id="mfoot"></footer></div>
+  </div>
+</div>
+
+<script type="application/json" id="model">{"meta":{"name":"Synthea CSV export","short":"synthea","blurb":"Synthetic patient records generated by MITRE Synthea. Flat CSV files with UUID keys, a common sandbox for healthcare analytics.","sources":[{"role":"Physical model (diagram equivalent)","label":"CSVConstants.java header lines (what the exporter actually writes)","url":"https://github.com/synthetichealth/synthea/blob/master/src/main/java/org/mitre/synthea/export/CSVConstants.java"},{"role":"Data dictionary","label":"Synthea wiki: CSV File Data Dictionary","url":"https://github.com/synthetichealth/synthea/wiki/CSV-File-Data-Dictionary"}],"commit":"bd8a52ba","hasPositions":false,"hubNote":""},"subjectAreas":[{"id":"patient","label":"Patient and coverage"},{"id":"clinical","label":"Clinical events"},{"id":"finance","label":"Claims and payers"},{"id":"org","label":"Organizations and providers"}],"tables":[{"id":"allergies","schema":"csv","name":"allergies","area":"clinical","description":"Patient allergy data.","guidance":"","pk":[],"columns":[{"name":"START","dictName":"Start","type":"date","dictType":"Date (YYYY-MM-DD)","required":true,"pk":false,"desc":"The date the allergy was diagnosed.","fkMarker":false,"flags":[]},{"name":"STOP","dictName":"Stop","type":"date","dictType":"Date (YYYY-MM-DD)","required":false,"pk":false,"desc":"The date the allergy ended, if applicable.","fkMarker":false,"flags":[]},{"name":"PATIENT","dictName":"Patient","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Patient.","fkMarker":true,"flags":[]},{"name":"ENCOUNTER","dictName":"Encounter","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Encounter when the allergy was diagnosed.","fkMarker":true,"flags":[]},{"name":"CODE","dictName":"Code","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Allergy code","fkMarker":false,"flags":[]},{"name":"SYSTEM","dictName":"System","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Terminology system of the Allergy code. `RxNorm` if this is a medication allergy, otherwise `SNOMED-CT`.","fkMarker":false,"flags":[]},{"name":"DESCRIPTION","dictName":"Description","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Description of the Allergy","fkMarker":false,"flags":[]},{"name":"TYPE","dictName":"Type","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Identify entry as an `allergy` or `intolerance`.","fkMarker":false,"flags":[]},{"name":"CATEGORY","dictName":"Category","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Identify the category as `drug`, `medication`, `food`, or `environment`.","fkMarker":false,"flags":[]},{"name":"REACTION1","dictName":"Reaction1","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Optional SNOMED code of the patients reaction.","fkMarker":false,"flags":[]},{"name":"DESCRIPTION1","dictName":"Description1","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Optional description of the `Reaction1` SNOMED code.","fkMarker":false,"flags":[]},{"name":"SEVERITY1","dictName":"Severity1","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Severity of the reaction: `MILD`, `MODERATE`, or `SEVERE`.","fkMarker":false,"flags":[]},{"name":"REACTION2","dictName":"Reaction2","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Optional SNOMED code of the patients second reaction.","fkMarker":false,"flags":[]},{"name":"DESCRIPTION2","dictName":"Description2","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Optional description of the `Reaction2` SNOMED code.","fkMarker":false,"flags":[]},{"name":"SEVERITY2","dictName":"Severity2","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Severity of the second reaction: `MILD`, `MODERATE`, or `SEVERE`.","fkMarker":false,"flags":[]}],"isLookup":false,"pos":null,"summary":"15 columns, PK none. References encounters, patients.","hub":false},{"id":"careplans","schema":"csv","name":"careplans","area":"clinical","description":"Patient care plan data, including goals.","guidance":"","pk":["Id"],"columns":[{"name":"Id","dictName":"Id","type":"uuid","dictType":"UUID","required":true,"pk":true,"desc":"Primary Key. Unique Identifier of the care plan.","fkMarker":false,"flags":[]},{"name":"START","dictName":"Start","type":"date","dictType":"Date (YYYY-MM-DD)","required":true,"pk":false,"desc":"The date the care plan was initiated.","fkMarker":false,"flags":[]},{"name":"STOP","dictName":"Stop","type":"date","dictType":"Date (YYYY-MM-DD)","required":false,"pk":false,"desc":"The date the care plan ended, if applicable.","fkMarker":false,"flags":[]},{"name":"PATIENT","dictName":"Patient","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Patient.","fkMarker":true,"flags":[]},{"name":"ENCOUNTER","dictName":"Encounter","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Encounter when the care plan was initiated.","fkMarker":true,"flags":[]},{"name":"CODE","dictName":"Code","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Code from SNOMED-CT","fkMarker":false,"flags":[]},{"name":"DESCRIPTION","dictName":"Description","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Description of the care plan.","fkMarker":false,"flags":[]},{"name":"REASONCODE","dictName":"ReasonCode","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Diagnosis code from SNOMED-CT that this care plan addresses.","fkMarker":false,"flags":[]},{"name":"REASONDESCRIPTION","dictName":"ReasonDescription","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Description of the reason code.","fkMarker":false,"flags":[]}],"isLookup":false,"pos":null,"summary":"9 columns, PK Id. References encounters, patients.","hub":false},{"id":"claims","schema":"csv","name":"claims","area":"finance","description":"Patient claim data.","guidance":"","pk":["Id"],"columns":[{"name":"Id","dictName":"Id","type":"uuid","dictType":"UUID","required":true,"pk":true,"desc":"Primary Key. Unique Identifier of the claim.","fkMarker":false,"flags":[]},{"name":"PATIENTID","dictName":"Patient ID","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Patient.","fkMarker":true,"flags":[]},{"name":"PROVIDERID","dictName":"Provider ID","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Provider.","fkMarker":true,"flags":[]},{"name":"PRIMARYPATIENTINSURANCEID","dictName":"Primary Patient Insurance ID","type":"uuid","dictType":"UUID","required":false,"pk":false,"desc":"Foreign key to the primary Payer.","fkMarker":true,"flags":[]},{"name":"SECONDARYPATIENTINSURANCEID","dictName":"Secondary Patient Insurance ID","type":"uuid","dictType":"UUID","required":false,"pk":false,"desc":"Foreign key to the second Payer.","fkMarker":true,"flags":[]},{"name":"DEPARTMENTID","dictName":"Department ID","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"Placeholder for department.","fkMarker":false,"flags":[]},{"name":"PATIENTDEPARTMENTID","dictName":"Patient Department ID","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"Placeholder for patient department.","fkMarker":false,"flags":[]},{"name":"DIAGNOSIS1","dictName":"Diagnosis1","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"SNOMED-CT code corresponding to a diagnosis related to the claim.","fkMarker":false,"flags":[]},{"name":"DIAGNOSIS2","dictName":"Diagnosis2","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"SNOMED-CT code corresponding to a diagnosis related to the claim.","fkMarker":false,"flags":[]},{"name":"DIAGNOSIS3","dictName":"Diagnosis3","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"SNOMED-CT code corresponding to a diagnosis related to the claim.","fkMarker":false,"flags":[]},{"name":"DIAGNOSIS4","dictName":"Diagnosis4","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"SNOMED-CT code corresponding to a diagnosis related to the claim.","fkMarker":false,"flags":[]},{"name":"DIAGNOSIS5","dictName":"Diagnosis5","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"SNOMED-CT code corresponding to a diagnosis related to the claim.","fkMarker":false,"flags":[]},{"name":"DIAGNOSIS6","dictName":"Diagnosis6","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"SNOMED-CT code corresponding to a diagnosis related to the claim.","fkMarker":false,"flags":[]},{"name":"DIAGNOSIS7","dictName":"Diagnosis7","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"SNOMED-CT code corresponding to a diagnosis related to the claim.","fkMarker":false,"flags":[]},{"name":"DIAGNOSIS8","dictName":"Diagnosis8","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"SNOMED-CT code corresponding to a diagnosis related to the claim.","fkMarker":false,"flags":[]},{"name":"REFERRINGPROVIDERID","dictName":"Referring Provider ID","type":"uuid","dictType":"UUID","required":false,"pk":false,"desc":"Foreign key to the Provider who made the referral.","fkMarker":true,"flags":[]},{"name":"APPOINTMENTID","dictName":"Appointment ID","type":"uuid","dictType":"UUID","required":false,"pk":false,"desc":"Foreign key to the Encounter.","fkMarker":true,"flags":[]},{"name":"CURRENTILLNESSDATE","dictName":"Current Illness Date","type":"date","dictType":"Date (yyyy-MM-dd'T'HH:mm'Z')","required":true,"pk":false,"desc":"The date the patient experienced symptoms.","fkMarker":false,"flags":[]},{"name":"SERVICEDATE","dictName":"Service Date","type":"date","dictType":"Date (yyyy-MM-dd'T'HH:mm'Z')","required":true,"pk":false,"desc":"The date of the services on the claim.","fkMarker":false,"flags":[]},{"name":"SUPERVISINGPROVIDERID","dictName":"Supervising Provider ID","type":"uuid","dictType":"UUID","required":false,"pk":false,"desc":"Foreign key to the supervising Provider.","fkMarker":true,"flags":[]},{"name":"STATUS1","dictName":"Status1","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Status of the claim from the Primary Insurance. `BILLED` or `CLOSED`.","fkMarker":false,"flags":[]},{"name":"STATUS2","dictName":"Status2","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Status of the claim from the Secondary Insurance. `BILLED` or `CLOSED`.","fkMarker":false,"flags":[]},{"name":"STATUSP","dictName":"StatusP","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Status of the claim from the Patient. `BILLED` or `CLOSED`.","fkMarker":false,"flags":[]},{"name":"OUTSTANDING1","dictName":"Outstanding1","type":"numeric","dictType":"Numeric","required":false,"pk":false,"desc":"Total amount of money owed by Primary Insurance.","fkMarker":false,"flags":[]},{"name":"OUTSTANDING2","dictName":"Outstanding2","type":"numeric","dictType":"Numeric","required":false,"pk":false,"desc":"Total amount of money owed by Secondary Insurance.","fkMarker":false,"flags":[]},{"name":"OUTSTANDINGP","dictName":"OutstandingP","type":"numeric","dictType":"Numeric","required":false,"pk":false,"desc":"Total amount of money owed by Patient.","fkMarker":false,"flags":[]},{"name":"LASTBILLEDDATE1","dictName":"LastBilledDate1","type":"date","dictType":"Date (yyyy-MM-dd'T'HH:mm'Z')","required":false,"pk":false,"desc":"Date the claim was sent to Primary Insurance.","fkMarker":false,"flags":[]},{"name":"LASTBILLEDDATE2","dictName":"LastBilledDate2","type":"date","dictType":"Date (yyyy-MM-dd'T'HH:mm'Z')","required":false,"pk":false,"desc":"Date the claim was sent to Secondary Insurance.","fkMarker":false,"flags":[]},{"name":"LASTBILLEDDATEP","dictName":"LastBilledDateP","type":"date","dictType":"Date (yyyy-MM-dd'T'HH:mm'Z')","required":false,"pk":false,"desc":"Date the claim was sent to the Patient.","fkMarker":false,"flags":[]},{"name":"HEALTHCARECLAIMTYPEID1","dictName":"HealthcareClaimTypeID1","type":"numeric","dictType":"Numeric","required":false,"pk":false,"desc":"Type of claim: `1` is professional, `2` is institutional.","fkMarker":false,"flags":[]},{"name":"HEALTHCARECLAIMTYPEID2","dictName":"HealthcareClaimTypeID2","type":"numeric","dictType":"Numeric","required":false,"pk":false,"desc":"Type of claim: `1` is professional, `2` is institutional.","fkMarker":false,"flags":[]}],"isLookup":false,"pos":null,"summary":"31 columns, PK Id. References encounters, patients, payers, providers. Referenced by 1 table(s).","hub":false},{"id":"claims_transactions","schema":"csv","name":"claims_transactions","area":"finance","description":"Transactions per line item per claim.","guidance":"","pk":["ID"],"columns":[{"name":"ID","dictName":"Id","type":"uuid","dictType":"UUID","required":true,"pk":true,"desc":"Primary Key. Unique Identifier of the claim transaction.","fkMarker":false,"flags":[]},{"name":"CLAIMID","dictName":"Claim ID","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Claim.","fkMarker":true,"flags":[]},{"name":"CHARGEID","dictName":"Charge ID","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"Charge ID.","fkMarker":false,"flags":[]},{"name":"PATIENTID","dictName":"Patient ID","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Patient.","fkMarker":true,"flags":[]},{"name":"TYPE","dictName":"Type","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"`CHARGE`: original line item. `PAYMENT`: payment made against a charge by an insurance company (aka Payer) or patient. `ADJUSTMENT`: change in the charge without a payment, made by an insurance company. `TRANSFERIN` and `TRANSFEROUT`: transfer of the balance from one insurance company to another, or to a patient.","fkMarker":false,"flags":[]},{"name":"AMOUNT","dictName":"Amount","type":"numeric","dictType":"Numeric","required":false,"pk":false,"desc":"Dollar amount for a `CHARGE` or `TRANSFERIN`.","fkMarker":false,"flags":[]},{"name":"METHOD","dictName":"Method","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Payment made by `CASH`, `CHECK`, `ECHECK`, `COPAY`, `SYSTEM` (adjustments without payment), or `CC` (credit card).","fkMarker":false,"flags":[]},{"name":"FROMDATE","dictName":"From Date","type":"date","dictType":"Date (yyyy-MM-dd'T'HH:mm'Z')","required":false,"pk":false,"desc":"Transaction start date.","fkMarker":false,"flags":[]},{"name":"TODATE","dictName":"To Date","type":"date","dictType":"Date (yyyy-MM-dd'T'HH:mm'Z')","required":false,"pk":false,"desc":"Transaction end date.","fkMarker":false,"flags":[]},{"name":"PLACEOFSERVICE","dictName":"Place of Service","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Organization.","fkMarker":true,"flags":[]},{"name":"PROCEDURECODE","dictName":"Procedure Code","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"SNOMED-CT or other code (e.g. CVX for Vaccines) for the service.","fkMarker":false,"flags":[]},{"name":"MODIFIER1","dictName":"Modifier1","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Unused. Modifier on procedure code.","fkMarker":false,"flags":[]},{"name":"MODIFIER2","dictName":"Modifier2","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Unused. Modifier on procedure code.","fkMarker":false,"flags":[]},{"name":"DIAGNOSISREF1","dictName":"DiagnosisRef1","type":"numeric","dictType":"Numeric","required":false,"pk":false,"desc":"Number indicating which diagnosis code from the claim applies to this transaction, 1-8 are valid options.","fkMarker":false,"flags":[]},{"name":"DIAGNOSISREF2","dictName":"DiagnosisRef2","type":"numeric","dictType":"Numeric","required":false,"pk":false,"desc":"Number indicating which diagnosis code from the claim applies to this transaction, 1-8 are valid options.","fkMarker":false,"flags":[]},{"name":"DIAGNOSISREF3","dictName":"DiagnosisRef3","type":"numeric","dictType":"Numeric","required":false,"pk":false,"desc":"Number indicating which diagnosis code from the claim applies to this transaction, 1-8 are valid options.","fkMarker":false,"flags":[]},{"name":"DIAGNOSISREF4","dictName":"DiagnosisRef4","type":"numeric","dictType":"Numeric","required":false,"pk":false,"desc":"Number indicating which diagnosis code from the claim applies to this transaction, 1-8 are valid options.","fkMarker":false,"flags":[]},{"name":"UNITS","dictName":"Units","type":"numeric","dictType":"Numeric","required":false,"pk":false,"desc":"Number of units of the service.","fkMarker":false,"flags":[]},{"name":"DEPARTMENTID","dictName":"Department ID","type":"numeric","dictType":"Numeric","required":false,"pk":false,"desc":"Placeholder for department.","fkMarker":false,"flags":[]},{"name":"NOTES","dictName":"Notes","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Description of the service or transaction.","fkMarker":false,"flags":[]},{"name":"UNITAMOUNT","dictName":"Unit Amount","type":"numeric","dictType":"Numeric","required":false,"pk":false,"desc":"Cost per unit.","fkMarker":false,"flags":[]},{"name":"TRANSFEROUTID","dictName":"Transfer Out ID","type":"numeric","dictType":"Numeric","required":false,"pk":false,"desc":"If the transaction is a `TRANSFERIN`, the Charge ID of the corresponding `TRANSFEROUT` row.","fkMarker":false,"flags":[]},{"name":"TRANSFERTYPE","dictName":"Transfer Type","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"`1` if transferred to the primary insurance, `2` if transferred to the secondary insurance, or `p` if transferred to the patient.","fkMarker":false,"flags":[]},{"name":"PAYMENTS","dictName":"Payments","type":"numeric","dictType":"Numeric","required":false,"pk":false,"desc":"Dollar amount of a payment for a `PAYMENT` row.","fkMarker":false,"flags":[]},{"name":"ADJUSTMENTS","dictName":"Adjustments","type":"numeric","dictType":"Numeric","required":false,"pk":false,"desc":"Dollar amount of an adjustment for an `ADJUSTMENTS` row.","fkMarker":false,"flags":[]},{"name":"TRANSFERS","dictName":"Transfers","type":"numeric","dictType":"Numeric","required":false,"pk":false,"desc":"Dollar amount of a transfer for a `TRANSFERIN` or `TRANSFEROUT` row.","fkMarker":false,"flags":[]},{"name":"OUTSTANDING","dictName":"Outstanding","type":"numeric","dictType":"Numeric","required":false,"pk":false,"desc":"Dollar amount left unpaid after this transaction was applied.","fkMarker":false,"flags":[]},{"name":"APPOINTMENTID","dictName":"Appointment ID","type":"uuid","dictType":"UUID","required":false,"pk":false,"desc":"Foreign key to the Encounter.","fkMarker":true,"flags":[]},{"name":"LINENOTE","dictName":"Line Note","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Note.","fkMarker":false,"flags":[]},{"name":"PATIENTINSURANCEID","dictName":"Patient Insurance ID","type":"uuid","dictType":"UUID","required":false,"pk":false,"desc":"Foreign key to the Payer Transitions table member ID.","fkMarker":true,"flags":[]},{"name":"FEESCHEDULEID","dictName":"Fee Schedule ID","type":"numeric","dictType":"Numeric","required":false,"pk":false,"desc":"Fixed to `1`.","fkMarker":false,"flags":[]},{"name":"PROVIDERID","dictName":"Provider ID","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Provider.","fkMarker":true,"flags":[]},{"name":"SUPERVISINGPROVIDERID","dictName":"Supervising Provider ID","type":"uuid","dictType":"UUID","required":false,"pk":false,"desc":"Foreign key to the supervising Provider.","fkMarker":true,"flags":[]}],"isLookup":false,"pos":null,"summary":"33 columns, PK ID. References claims, encounters, organizations, patients, payer_transitions, providers.","hub":false},{"id":"conditions","schema":"csv","name":"conditions","area":"clinical","description":"Patient conditions or diagnoses.","guidance":"","pk":[],"columns":[{"name":"START","dictName":"Start","type":"date","dictType":"Date (YYYY-MM-DD)","required":true,"pk":false,"desc":"The date the condition was diagnosed.","fkMarker":false,"flags":[]},{"name":"STOP","dictName":"Stop","type":"date","dictType":"Date (YYYY-MM-DD)","required":false,"pk":false,"desc":"The date the condition resolved, if applicable.","fkMarker":false,"flags":[]},{"name":"PATIENT","dictName":"Patient","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Patient.","fkMarker":true,"flags":[]},{"name":"ENCOUNTER","dictName":"Encounter","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Encounter when the condition was diagnosed.","fkMarker":true,"flags":[]},{"name":"SYSTEM","dictName":"System","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Specifies the code system, typically SNOMED","fkMarker":false,"flags":[]},{"name":"CODE","dictName":"Code","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Diagnosis code from SNOMED-CT","fkMarker":false,"flags":[]},{"name":"DESCRIPTION","dictName":"Description","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Description of the condition.","fkMarker":false,"flags":[]}],"isLookup":false,"pos":null,"summary":"7 columns, PK none. References encounters, patients.","hub":false},{"id":"devices","schema":"csv","name":"devices","area":"clinical","description":"Patient-affixed permanent and semi-permanent devices.","guidance":"","pk":[],"columns":[{"name":"START","dictName":"Start","type":"timestamp","dictType":"iso8601 UTC Date (yyyy-MM-dd'T'HH:mm'Z')","required":true,"pk":false,"desc":"The date and time the device was associated to the patient.","fkMarker":false,"flags":[]},{"name":"STOP","dictName":"Stop","type":"timestamp","dictType":"iso8601 UTC Date (yyyy-MM-dd'T'HH:mm'Z')","required":false,"pk":false,"desc":"The date and time the device was removed, if applicable.","fkMarker":false,"flags":[]},{"name":"PATIENT","dictName":"Patient","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Patient.","fkMarker":true,"flags":[]},{"name":"ENCOUNTER","dictName":"Encounter","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Encounter when the device was associated.","fkMarker":true,"flags":[]},{"name":"CODE","dictName":"Code","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Type of device, from SNOMED-CT","fkMarker":false,"flags":[]},{"name":"DESCRIPTION","dictName":"Description","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Description of the device.","fkMarker":false,"flags":[]},{"name":"UDI","dictName":"UDI","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"[Unique Device Identifier](https://www.fda.gov/medical-devices/unique-device-identification-system-udi-system/udi-basics) for the device.","fkMarker":false,"flags":[]}],"isLookup":false,"pos":null,"summary":"7 columns, PK none. References encounters, patients.","hub":false},{"id":"encounters","schema":"csv","name":"encounters","area":"clinical","description":"Patient encounter data.","guidance":"","pk":["Id"],"columns":[{"name":"Id","dictName":"Id","type":"uuid","dictType":"UUID","required":true,"pk":true,"desc":"Primary Key. Unique Identifier of the encounter.","fkMarker":false,"flags":[]},{"name":"START","dictName":"Start","type":"timestamp","dictType":"iso8601 UTC Date (yyyy-MM-dd'T'HH:mm'Z')","required":true,"pk":false,"desc":"The date and time the encounter started.","fkMarker":false,"flags":[]},{"name":"STOP","dictName":"Stop","type":"timestamp","dictType":"iso8601 UTC Date (yyyy-MM-dd'T'HH:mm'Z')","required":false,"pk":false,"desc":"The date and time the encounter concluded.","fkMarker":false,"flags":[]},{"name":"PATIENT","dictName":"Patient","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Patient.","fkMarker":true,"flags":[]},{"name":"ORGANIZATION","dictName":"Organization","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Organization.","fkMarker":true,"flags":[]},{"name":"PROVIDER","dictName":"Provider","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Provider.","fkMarker":true,"flags":[]},{"name":"PAYER","dictName":"Payer","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Payer.","fkMarker":true,"flags":[]},{"name":"ENCOUNTERCLASS","dictName":"EncounterClass","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"The class of the encounter, such as `ambulatory`, `emergency`, `inpatient`, `wellness`, or `urgentcare`","fkMarker":false,"flags":[]},{"name":"CODE","dictName":"Code","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Encounter code from SNOMED-CT","fkMarker":false,"flags":[]},{"name":"DESCRIPTION","dictName":"Description","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Description of the type of encounter.","fkMarker":false,"flags":[]},{"name":"BASE_ENCOUNTER_COST","dictName":"Base_Encounter_Cost","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"The base cost of the encounter, **not** including any line item costs related to medications, immunizations, procedures, or other services.","fkMarker":false,"flags":[]},{"name":"TOTAL_CLAIM_COST","dictName":"Total_Claim_Cost","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"The total cost of the encounter, including all line items.","fkMarker":false,"flags":[]},{"name":"PAYER_COVERAGE","dictName":"Payer_Coverage","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"The amount of cost covered by the Payer.","fkMarker":false,"flags":[]},{"name":"REASONCODE","dictName":"ReasonCode","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Diagnosis code from SNOMED-CT, **only if** this encounter targeted a specific condition.","fkMarker":false,"flags":[]},{"name":"REASONDESCRIPTION","dictName":"ReasonDescription","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Description of the reason code.","fkMarker":false,"flags":[]}],"isLookup":false,"pos":null,"summary":"15 columns, PK Id. References organizations, patients, payers, providers. Referenced by 12 table(s).","hub":false},{"id":"imaging_studies","schema":"csv","name":"imaging_studies","area":"clinical","description":"Patient imaging metadata.","guidance":"","pk":[],"columns":[{"name":"Id","dictName":"Id","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Non-unique identifier of the imaging study. An imaging study may have multiple rows.","fkMarker":false,"flags":[]},{"name":"DATE","dictName":"Date","type":"timestamp","dictType":"iso8601 UTC Date (yyyy-MM-dd'T'HH:mm'Z')","required":true,"pk":false,"desc":"The date and time the imaging study was conducted.","fkMarker":false,"flags":[]},{"name":"PATIENT","dictName":"Patient","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Patient.","fkMarker":true,"flags":[]},{"name":"ENCOUNTER","dictName":"Encounter","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Encounter where the imaging study was conducted.","fkMarker":true,"flags":[]},{"name":"SERIES_UID","dictName":"Series UID","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Imaging Study series DICOM UID.","fkMarker":false,"flags":[]},{"name":"BODYSITE_CODE","dictName":"Body Site Code","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"A SNOMED Body Structures code describing what part of the body the images in the series were taken of.","fkMarker":false,"flags":[]},{"name":"BODYSITE_DESCRIPTION","dictName":"Body Site Description","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Description of the body site.","fkMarker":false,"flags":[]},{"name":"MODALITY_CODE","dictName":"Modality Code","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"A [DICOM-DCM](https://github.com/synthetichealth/synthea/wiki/Generic-Module-Framework%3A-Basics#dicom-dcm-codes) code describing the method used to take the images.","fkMarker":false,"flags":[]},{"name":"MODALITY_DESCRIPTION","dictName":"Modality Description","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Description of the modality.","fkMarker":false,"flags":[]},{"name":"INSTANCE_UID","dictName":"Instance UID","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Imaging Study instance DICOM UID.","fkMarker":false,"flags":[]},{"name":"SOP_CODE","dictName":"SOP Code","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"A [DICOM-SOP](https://github.com/synthetichealth/synthea/wiki/Generic-Module-Framework%3A-Basics#dicom-sop-codes) code describing the Subject-Object Pair (SOP) that constitutes the image.","fkMarker":false,"flags":[]},{"name":"SOP_DESCRIPTION","dictName":"SOP Description","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Description of the SOP code.","fkMarker":false,"flags":[]},{"name":"PROCEDURE_CODE","dictName":"Procedure Code","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Procedure code from SNOMED-CT.","fkMarker":false,"flags":[]}],"isLookup":false,"pos":null,"summary":"13 columns, PK none. References encounters, patients.","hub":false},{"id":"immunizations","schema":"csv","name":"immunizations","area":"clinical","description":"Patient immunization data.","guidance":"","pk":[],"columns":[{"name":"DATE","dictName":"Date","type":"timestamp","dictType":"iso8601 UTC Date (yyyy-MM-dd'T'HH:mm'Z')","required":true,"pk":false,"desc":"The date the immunization was administered.","fkMarker":false,"flags":[]},{"name":"PATIENT","dictName":"Patient","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Patient.","fkMarker":true,"flags":[]},{"name":"ENCOUNTER","dictName":"Encounter","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Encounter where the immunization was administered.","fkMarker":true,"flags":[]},{"name":"CODE","dictName":"Code","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Immunization code from CVX.","fkMarker":false,"flags":[]},{"name":"DESCRIPTION","dictName":"Description","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Description of the immunization.","fkMarker":false,"flags":[]},{"name":"BASE_COST","dictName":"Cost","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"The line item cost of the immunization.","fkMarker":false,"flags":["renamed?"]}],"isLookup":false,"pos":null,"summary":"6 columns, PK none. References encounters, patients.","hub":false},{"id":"medications","schema":"csv","name":"medications","area":"clinical","description":"Patient medication data.","guidance":"","pk":[],"columns":[{"name":"START","dictName":"Start","type":"timestamp","dictType":"iso8601 UTC Date (yyyy-MM-dd'T'HH:mm'Z')","required":true,"pk":false,"desc":"The date and time the medication was prescribed.","fkMarker":false,"flags":[]},{"name":"STOP","dictName":"Stop","type":"timestamp","dictType":"iso8601 UTC Date (yyyy-MM-dd'T'HH:mm'Z')","required":false,"pk":false,"desc":"The date and time the prescription ended, if applicable.","fkMarker":false,"flags":[]},{"name":"PATIENT","dictName":"Patient","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Patient.","fkMarker":true,"flags":[]},{"name":"PAYER","dictName":"Payer","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Payer.","fkMarker":true,"flags":[]},{"name":"ENCOUNTER","dictName":"Encounter","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Encounter where the medication was prescribed.","fkMarker":true,"flags":[]},{"name":"CODE","dictName":"Code","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Medication code from RxNorm.","fkMarker":false,"flags":[]},{"name":"DESCRIPTION","dictName":"Description","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Description of the medication.","fkMarker":false,"flags":[]},{"name":"BASE_COST","dictName":"Base_Cost","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"The line item cost of the medication.","fkMarker":false,"flags":[]},{"name":"PAYER_COVERAGE","dictName":"Payer_Coverage","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"The amount covered or reimbursed by the Payer.","fkMarker":false,"flags":[]},{"name":"DISPENSES","dictName":"Dispenses","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"The number of times the prescription was filled.","fkMarker":false,"flags":[]},{"name":"TOTALCOST","dictName":"TotalCost","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"The total cost of the prescription, including all dispenses.","fkMarker":false,"flags":[]},{"name":"REASONCODE","dictName":"ReasonCode","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Diagnosis code from SNOMED-CT specifying why this medication was prescribed.","fkMarker":false,"flags":[]},{"name":"REASONDESCRIPTION","dictName":"ReasonDescription","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Description of the reason code.","fkMarker":false,"flags":[]}],"isLookup":false,"pos":null,"summary":"13 columns, PK none. References encounters, patients, payers.","hub":false},{"id":"observations","schema":"csv","name":"observations","area":"clinical","description":"Patient observations including vital signs and lab reports.","guidance":"","pk":[],"columns":[{"name":"DATE","dictName":"Date","type":"timestamp","dictType":"iso8601 UTC Date (yyyy-MM-dd'T'HH:mm'Z')","required":true,"pk":false,"desc":"The date and time the observation was performed.","fkMarker":false,"flags":[]},{"name":"PATIENT","dictName":"Patient","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Patient.","fkMarker":true,"flags":[]},{"name":"ENCOUNTER","dictName":"Encounter","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Encounter where the observation was performed.","fkMarker":true,"flags":[]},{"name":"CATEGORY","dictName":"Category","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Observation category.","fkMarker":false,"flags":[]},{"name":"CODE","dictName":"Code","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Observation or Lab code from LOINC","fkMarker":false,"flags":[]},{"name":"DESCRIPTION","dictName":"Description","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Description of the observation or lab.","fkMarker":false,"flags":[]},{"name":"VALUE","dictName":"Value","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"The recorded value of the observation. Often numeric, but some values can be verbose, for example, multiple-choice questionnaire responses.","fkMarker":false,"flags":[]},{"name":"UNITS","dictName":"Units","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"The units of measure for the value.","fkMarker":false,"flags":[]},{"name":"TYPE","dictName":"Type","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"The datatype of `Value`: `text` or `numeric`","fkMarker":false,"flags":[]}],"isLookup":false,"pos":null,"summary":"9 columns, PK none. References encounters, patients.","hub":false},{"id":"organizations","schema":"csv","name":"organizations","area":"org","description":"Provider organizations including hospitals.","guidance":"","pk":["Id"],"columns":[{"name":"Id","dictName":"Id","type":"uuid","dictType":"UUID","required":true,"pk":true,"desc":"Primary key of the Organization.","fkMarker":false,"flags":[]},{"name":"NAME","dictName":"Name","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Name of the Organization.","fkMarker":false,"flags":[]},{"name":"ADDRESS","dictName":"Address","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Organization's street address without commas or newlines.","fkMarker":false,"flags":[]},{"name":"CITY","dictName":"City","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Street address city.","fkMarker":false,"flags":[]},{"name":"STATE","dictName":"State","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Street address state abbreviation.","fkMarker":false,"flags":[]},{"name":"ZIP","dictName":"Zip","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Street address zip or postal code.","fkMarker":false,"flags":[]},{"name":"LAT","dictName":"Lat","type":"numeric","dictType":"Numeric","required":false,"pk":false,"desc":"Latitude of Organization's address.","fkMarker":false,"flags":[]},{"name":"LON","dictName":"Lon","type":"numeric","dictType":"Numeric","required":false,"pk":false,"desc":"Longitude of Organization's address.","fkMarker":false,"flags":[]},{"name":"PHONE","dictName":"Phone","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Organization's phone number. Sometimes multiple numbers.","fkMarker":false,"flags":[]},{"name":"REVENUE","dictName":"Revenue","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"The monetary revenue of the organization during the entire simulation.","fkMarker":false,"flags":[]},{"name":"UTILIZATION","dictName":"Utilization","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"The number of Encounters performed by this Organization.","fkMarker":false,"flags":[]},{"name":"NPI","dictName":"","type":"","dictType":"","required":false,"pk":false,"desc":"","fkMarker":false,"flags":["code-only"]}],"isLookup":true,"pos":null,"summary":"12 columns, PK Id. Referenced by 3 table(s).","hub":false},{"id":"patient_expenses","schema":"csv","name":"patient_expenses","area":"patient","description":"","guidance":"","pk":[],"columns":[{"name":"PATIENT_ID","dictName":"","type":"","dictType":"","required":false,"pk":false,"desc":"","fkMarker":false,"flags":[]},{"name":"YEAR","dictName":"","type":"","dictType":"","required":false,"pk":false,"desc":"","fkMarker":false,"flags":[]},{"name":"PAYER_ID","dictName":"","type":"","dictType":"","required":false,"pk":false,"desc":"","fkMarker":false,"flags":[]},{"name":"HEALTHCARE_EXPENSES","dictName":"","type":"","dictType":"","required":false,"pk":false,"desc":"","fkMarker":false,"flags":[]},{"name":"INSURANCE_COSTS","dictName":"","type":"","dictType":"","required":false,"pk":false,"desc":"","fkMarker":false,"flags":[]},{"name":"COVERED_COSTS","dictName":"","type":"","dictType":"","required":false,"pk":false,"desc":"","fkMarker":false,"flags":[]}],"isLookup":false,"pos":null,"summary":"6 columns, PK none. References patients, payers.","hub":false},{"id":"patients","schema":"csv","name":"patients","area":"patient","description":"Patient demographic data.","guidance":"","pk":["Id"],"columns":[{"name":"Id","dictName":"Id","type":"uuid","dictType":"UUID","required":true,"pk":true,"desc":"Primary Key. Unique Identifier of the patient.","fkMarker":false,"flags":[]},{"name":"BIRTHDATE","dictName":"BirthDate","type":"date","dictType":"Date (YYYY-MM-DD)","required":true,"pk":false,"desc":"The date the patient was born.","fkMarker":false,"flags":[]},{"name":"DEATHDATE","dictName":"DeathDate","type":"date","dictType":"Date (YYYY-MM-DD)","required":false,"pk":false,"desc":"The date the patient died.","fkMarker":false,"flags":[]},{"name":"SSN","dictName":"SSN","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Patient Social Security identifier.","fkMarker":false,"flags":[]},{"name":"DRIVERS","dictName":"Drivers","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Patient Drivers License identifier.","fkMarker":false,"flags":[]},{"name":"PASSPORT","dictName":"Passport","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Patient Passport identifier.","fkMarker":false,"flags":[]},{"name":"PREFIX","dictName":"Prefix","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Name prefix, such as `Mr.`, `Mrs.`, `Dr.`, etc.","fkMarker":false,"flags":[]},{"name":"FIRST","dictName":"First","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"First name of the patient.","fkMarker":false,"flags":[]},{"name":"MIDDLE","dictName":"Middle","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Middle name of the patient.","fkMarker":false,"flags":[]},{"name":"LAST","dictName":"Last","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Last or surname of the patient.","fkMarker":false,"flags":[]},{"name":"SUFFIX","dictName":"Suffix","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Name suffix, such as `PhD`, `MD`, `JD`, etc.","fkMarker":false,"flags":[]},{"name":"MAIDEN","dictName":"Maiden","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Maiden name of the patient.","fkMarker":false,"flags":[]},{"name":"MARITAL","dictName":"Marital","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Marital Status. `M` is married, `S` is single. Currently no support for divorce (`D`) or widowing (`W`)","fkMarker":false,"flags":[]},{"name":"RACE","dictName":"Race","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Description of the patient's primary race.","fkMarker":false,"flags":[]},{"name":"ETHNICITY","dictName":"Ethnicity","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Description of the patient's primary ethnicity.","fkMarker":false,"flags":[]},{"name":"GENDER","dictName":"Gender","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Gender. `M` is male, `F` is female.","fkMarker":false,"flags":[]},{"name":"BIRTHPLACE","dictName":"BirthPlace","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Name of the town where the patient was born.","fkMarker":false,"flags":[]},{"name":"ADDRESS","dictName":"Address","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Patient's street address without commas or newlines.","fkMarker":false,"flags":[]},{"name":"CITY","dictName":"City","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Patient's address city.","fkMarker":false,"flags":[]},{"name":"STATE","dictName":"State","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Patient's address state.","fkMarker":false,"flags":[]},{"name":"COUNTY","dictName":"County","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Patient's address county.","fkMarker":false,"flags":[]},{"name":"FIPS","dictName":"FIPS County Code","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Patient's FIPS county code.","fkMarker":false,"flags":["renamed?"]},{"name":"ZIP","dictName":"Zip","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Patient's zip code.","fkMarker":false,"flags":[]},{"name":"LAT","dictName":"Lat","type":"numeric","dictType":"Numeric","required":false,"pk":false,"desc":"Latitude of Patient's address.","fkMarker":false,"flags":[]},{"name":"LON","dictName":"Lon","type":"numeric","dictType":"Numeric","required":false,"pk":false,"desc":"Longitude of Patient's address.","fkMarker":false,"flags":[]},{"name":"HEALTHCARE_EXPENSES","dictName":"Healthcare_Expenses","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"The total lifetime cost of healthcare to the patient (i.e. what the patient paid).","fkMarker":false,"flags":[]},{"name":"HEALTHCARE_COVERAGE","dictName":"Healthcare_Coverage","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"The total lifetime cost of healthcare services that were covered by Payers (i.e. what the insurance company paid).","fkMarker":false,"flags":[]},{"name":"INCOME","dictName":"Income","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"Annual income for the Patient","fkMarker":false,"flags":[]}],"isLookup":false,"pos":null,"summary":"28 columns, PK Id. Referenced by 15 table(s).","hub":false},{"id":"payer_transitions","schema":"csv","name":"payer_transitions","area":"patient","description":"Payer Transition data (i.e. changes in health insurance).","guidance":"","pk":[],"columns":[{"name":"PATIENT","dictName":"Patient","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Patient.","fkMarker":true,"flags":[]},{"name":"MEMBERID","dictName":"Member ID","type":"uuid","dictType":"UUID","required":false,"pk":false,"desc":"Member ID for the Insurance Plan.","fkMarker":false,"flags":[]},{"name":"START_DATE","dictName":"Start_Year","type":"date","dictType":"Date (YYYY)","required":true,"pk":false,"desc":"The year the coverage started (inclusive).","fkMarker":false,"flags":["renamed?"]},{"name":"END_DATE","dictName":"End_Year","type":"date","dictType":"Date (YYYY)","required":true,"pk":false,"desc":"The year the coverage ended (inclusive).","fkMarker":false,"flags":["renamed?"]},{"name":"PAYER","dictName":"Payer","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Payer.","fkMarker":true,"flags":[]},{"name":"SECONDARY_PAYER","dictName":"Secondary Payer","type":"uuid","dictType":"UUID","required":false,"pk":false,"desc":"Foreign key to the Secondary Payer.","fkMarker":true,"flags":[]},{"name":"PLAN_OWNERSHIP","dictName":"Ownership","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"The owner of the insurance policy. Legal values: `Guardian`, `Self`, `Spouse`.","fkMarker":false,"flags":["renamed?"]},{"name":"OWNER_NAME","dictName":"Owner Name","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"The name of the insurance policy owner.","fkMarker":false,"flags":[]}],"isLookup":false,"pos":null,"summary":"8 columns, PK none. References patients, payers. Referenced by 1 table(s).","hub":false},{"id":"payers","schema":"csv","name":"payers","area":"finance","description":"Payer organization data.","guidance":"","pk":["Id"],"columns":[{"name":"Id","dictName":"Id","type":"uuid","dictType":"UUID","required":true,"pk":true,"desc":"Primary key of the Payer (e.g. Insurance).","fkMarker":false,"flags":[]},{"name":"NAME","dictName":"Name","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Name of the Payer.","fkMarker":false,"flags":[]},{"name":"OWNERSHIP","dictName":"Ownership","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Typically `Government` or `Private`.","fkMarker":false,"flags":[]},{"name":"ADDRESS","dictName":"Address","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Payer's street address without commas or newlines.","fkMarker":false,"flags":[]},{"name":"CITY","dictName":"City","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Street address city.","fkMarker":false,"flags":[]},{"name":"STATE_HEADQUARTERED","dictName":"State_Headquartered","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Street address state abbreviation.","fkMarker":false,"flags":[]},{"name":"ZIP","dictName":"Zip","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Street address zip or postal code.","fkMarker":false,"flags":[]},{"name":"PHONE","dictName":"Phone","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Payer's phone number.","fkMarker":false,"flags":[]},{"name":"AMOUNT_COVERED","dictName":"Amount_Covered","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"The monetary amount paid to Organizations during the entire simulation.","fkMarker":false,"flags":[]},{"name":"AMOUNT_UNCOVERED","dictName":"Amount_Uncovered","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"The monetary amount not paid to Organizations during the entire simulation, and covered out of pocket by patients.","fkMarker":false,"flags":[]},{"name":"REVENUE","dictName":"Revenue","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"The monetary revenue of the Payer during the entire simulation.","fkMarker":false,"flags":[]},{"name":"COVERED_ENCOUNTERS","dictName":"Covered_Encounters","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"The number of Encounters paid for by this Payer.","fkMarker":false,"flags":[]},{"name":"UNCOVERED_ENCOUNTERS","dictName":"Uncovered_Encounters","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"The number of Encounters not paid for by this Payer, and paid out of pocket by patients.","fkMarker":false,"flags":[]},{"name":"COVERED_MEDICATIONS","dictName":"Covered_Medications","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"The number of Medications paid for by this Payer.","fkMarker":false,"flags":[]},{"name":"UNCOVERED_MEDICATIONS","dictName":"Uncovered_Medications","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"The number of Medications not paid for by this Payer, and paid out of pocket by patients.","fkMarker":false,"flags":[]},{"name":"COVERED_PROCEDURES","dictName":"Covered_Procedures","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"The number of Procedures paid for by this Payer.","fkMarker":false,"flags":[]},{"name":"UNCOVERED_PROCEDURES","dictName":"Uncovered_Procedures","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"The number of Procedures not paid for by this Payer, and paid out of pocket by patients.","fkMarker":false,"flags":[]},{"name":"COVERED_IMMUNIZATIONS","dictName":"Covered_Immunizations","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"The number of Immunizations paid for by this Payer.","fkMarker":false,"flags":[]},{"name":"UNCOVERED_IMMUNIZATIONS","dictName":"Uncovered_Immunizations","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"The number of Immunizations not paid for by this Payer, and paid out of pocket by patients.","fkMarker":false,"flags":[]},{"name":"UNIQUE_CUSTOMERS","dictName":"Unique_Customers","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"The number of unique patients enrolled with this Payer during the entire simulation.","fkMarker":false,"flags":[]},{"name":"QOLS_AVG","dictName":"QOLS_Avg","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"The average Quality of Life Scores (QOLS) for all patients enrolled with this Payer during the entire simulation.","fkMarker":false,"flags":[]},{"name":"MEMBER_MONTHS","dictName":"Member_Months","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"The total number of months that patients were enrolled with this Payer during the simulation and paid monthly premiums (if any).","fkMarker":false,"flags":[]}],"isLookup":true,"pos":null,"summary":"22 columns, PK Id. Referenced by 5 table(s).","hub":false},{"id":"procedures","schema":"csv","name":"procedures","area":"clinical","description":"Patient procedure data including surgeries.","guidance":"","pk":[],"columns":[{"name":"START","dictName":"Start","type":"timestamp","dictType":"iso8601 UTC Date (yyyy-MM-dd'T'HH:mm'Z')","required":true,"pk":false,"desc":"The date and time the procedure was performed.","fkMarker":false,"flags":[]},{"name":"STOP","dictName":"Stop","type":"timestamp","dictType":"iso8601 UTC Date (yyyy-MM-dd'T'HH:mm'Z')","required":false,"pk":false,"desc":"The date and time the procedure was completed, if applicable.","fkMarker":false,"flags":[]},{"name":"PATIENT","dictName":"Patient","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Patient.","fkMarker":true,"flags":[]},{"name":"ENCOUNTER","dictName":"Encounter","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Encounter where the procedure was performed.","fkMarker":true,"flags":[]},{"name":"SYSTEM","dictName":"System","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Terminology system for the Code, typically SNOMED-CT.","fkMarker":false,"flags":[]},{"name":"CODE","dictName":"Code","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Procedure code from SNOMED-CT","fkMarker":false,"flags":[]},{"name":"DESCRIPTION","dictName":"Description","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Description of the procedure.","fkMarker":false,"flags":[]},{"name":"BASE_COST","dictName":"Base_Cost","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"The line item cost of the procedure.","fkMarker":false,"flags":[]},{"name":"REASONCODE","dictName":"ReasonCode","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Diagnosis code from SNOMED-CT specifying why this procedure was performed.","fkMarker":false,"flags":[]},{"name":"REASONDESCRIPTION","dictName":"ReasonDescription","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Description of the reason code.","fkMarker":false,"flags":[]}],"isLookup":false,"pos":null,"summary":"10 columns, PK none. References encounters, patients.","hub":false},{"id":"providers","schema":"csv","name":"providers","area":"org","description":"Clinicians that provide patient care.","guidance":"","pk":["Id"],"columns":[{"name":"Id","dictName":"Id","type":"uuid","dictType":"UUID","required":true,"pk":true,"desc":"Primary key of the Provider/Clinician.","fkMarker":false,"flags":[]},{"name":"ORGANIZATION","dictName":"Organization","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Organization that employees this provider.","fkMarker":true,"flags":[]},{"name":"NAME","dictName":"Name","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"First and last name of the Provider.","fkMarker":false,"flags":[]},{"name":"GENDER","dictName":"Gender","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Gender. `M` is male, `F` is female.","fkMarker":false,"flags":[]},{"name":"SPECIALITY","dictName":"Speciality","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Provider speciality.","fkMarker":false,"flags":[]},{"name":"ADDRESS","dictName":"Address","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Provider's street address without commas or newlines.","fkMarker":false,"flags":[]},{"name":"CITY","dictName":"City","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Street address city.","fkMarker":false,"flags":[]},{"name":"STATE","dictName":"State","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Street address state abbreviation.","fkMarker":false,"flags":[]},{"name":"ZIP","dictName":"Zip","type":"varchar","dictType":"String","required":false,"pk":false,"desc":"Street address zip or postal code.","fkMarker":false,"flags":[]},{"name":"LAT","dictName":"Lat","type":"numeric","dictType":"Numeric","required":false,"pk":false,"desc":"Latitude of Provider's address.","fkMarker":false,"flags":[]},{"name":"LON","dictName":"Lon","type":"numeric","dictType":"Numeric","required":false,"pk":false,"desc":"Longitude of Provider's address.","fkMarker":false,"flags":[]},{"name":"ENCOUNTERS","dictName":"Encounters","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"The number of Encounters performed by this provider.","fkMarker":false,"flags":[]},{"name":"PROCEDURES","dictName":"Procedures","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"The number of Procedures performed by this provider.","fkMarker":false,"flags":[]},{"name":"NPI","dictName":"","type":"","dictType":"","required":false,"pk":false,"desc":"","fkMarker":false,"flags":["code-only"]}],"isLookup":false,"pos":null,"summary":"14 columns, PK Id. References organizations. Referenced by 3 table(s).","hub":false},{"id":"supplies","schema":"csv","name":"supplies","area":"clinical","description":"Supplies used in the provision of care.","guidance":"","pk":[],"columns":[{"name":"DATE","dictName":"Date","type":"date","dictType":"Date (YYYY-MM-DD)","required":true,"pk":false,"desc":"The date the supplies were used.","fkMarker":false,"flags":[]},{"name":"PATIENT","dictName":"Patient","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Patient.","fkMarker":true,"flags":[]},{"name":"ENCOUNTER","dictName":"Encounter","type":"uuid","dictType":"UUID","required":true,"pk":false,"desc":"Foreign key to the Encounter when the supplies were used.","fkMarker":true,"flags":[]},{"name":"CODE","dictName":"Code","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Code for the type of supply used, from SNOMED-CT","fkMarker":false,"flags":[]},{"name":"DESCRIPTION","dictName":"Description","type":"varchar","dictType":"String","required":true,"pk":false,"desc":"Description of supply used.","fkMarker":false,"flags":[]},{"name":"QUANTITY","dictName":"Quantity","type":"numeric","dictType":"Numeric","required":true,"pk":false,"desc":"Quantity of supply used.","fkMarker":false,"flags":[]}],"isLookup":false,"pos":null,"summary":"6 columns, PK none. References encounters, patients.","hub":false}],"relationships":[{"id":"allergies.PATIENT>patients","from":"allergies","fromCols":["PATIENT"],"to":"patients","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Patient\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"allergies.ENCOUNTER>encounters","from":"allergies","fromCols":["ENCOUNTER"],"to":"encounters","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Encounter\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"careplans.PATIENT>patients","from":"careplans","fromCols":["PATIENT"],"to":"patients","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Patient\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"careplans.ENCOUNTER>encounters","from":"careplans","fromCols":["ENCOUNTER"],"to":"encounters","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Encounter\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"claims.PATIENTID>patients","from":"claims","fromCols":["PATIENTID"],"to":"patients","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Patient\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"claims.PROVIDERID>providers","from":"claims","fromCols":["PROVIDERID"],"to":"providers","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Provider\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"claims.PRIMARYPATIENTINSURANCEID>payers","from":"claims","fromCols":["PRIMARYPATIENTINSURANCEID"],"to":"payers","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the primary Payer\" (target column = target PK)","role":"primary","condition":"","self":false,"flags":[]},{"id":"claims.SECONDARYPATIENTINSURANCEID>payers","from":"claims","fromCols":["SECONDARYPATIENTINSURANCEID"],"to":"payers","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the second Payer\" (target column = target PK)","role":"secondary","condition":"","self":false,"flags":[]},{"id":"claims.REFERRINGPROVIDERID>providers","from":"claims","fromCols":["REFERRINGPROVIDERID"],"to":"providers","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Provider who made the referral\" (target column = target PK)","role":"referring","condition":"","self":false,"flags":[]},{"id":"claims.APPOINTMENTID>encounters","from":"claims","fromCols":["APPOINTMENTID"],"to":"encounters","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Encounter\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"claims.SUPERVISINGPROVIDERID>providers","from":"claims","fromCols":["SUPERVISINGPROVIDERID"],"to":"providers","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the supervising Provider\" (target column = target PK)","role":"supervising","condition":"","self":false,"flags":[]},{"id":"claims_transactions.CLAIMID>claims","from":"claims_transactions","fromCols":["CLAIMID"],"to":"claims","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Claim\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"claims_transactions.PATIENTID>patients","from":"claims_transactions","fromCols":["PATIENTID"],"to":"patients","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Patient\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"claims_transactions.PLACEOFSERVICE>organizations","from":"claims_transactions","fromCols":["PLACEOFSERVICE"],"to":"organizations","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Organization\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"claims_transactions.APPOINTMENTID>encounters","from":"claims_transactions","fromCols":["APPOINTMENTID"],"to":"encounters","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Encounter\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"claims_transactions.PATIENTINSURANCEID>payer_transitions","from":"claims_transactions","fromCols":["PATIENTINSURANCEID"],"to":"payer_transitions","toCols":["MEMBERID"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Payer Transitions table member ID\" (target column = target PK)","role":"","condition":"","self":false,"flags":["fan-out"]},{"id":"claims_transactions.PROVIDERID>providers","from":"claims_transactions","fromCols":["PROVIDERID"],"to":"providers","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Provider\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"claims_transactions.SUPERVISINGPROVIDERID>providers","from":"claims_transactions","fromCols":["SUPERVISINGPROVIDERID"],"to":"providers","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the supervising Provider\" (target column = target PK)","role":"supervising","condition":"","self":false,"flags":[]},{"id":"conditions.PATIENT>patients","from":"conditions","fromCols":["PATIENT"],"to":"patients","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Patient\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"conditions.ENCOUNTER>encounters","from":"conditions","fromCols":["ENCOUNTER"],"to":"encounters","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Encounter\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"devices.PATIENT>patients","from":"devices","fromCols":["PATIENT"],"to":"patients","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Patient\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"devices.ENCOUNTER>encounters","from":"devices","fromCols":["ENCOUNTER"],"to":"encounters","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Encounter\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"encounters.PATIENT>patients","from":"encounters","fromCols":["PATIENT"],"to":"patients","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Patient\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"encounters.ORGANIZATION>organizations","from":"encounters","fromCols":["ORGANIZATION"],"to":"organizations","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Organization\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"encounters.PROVIDER>providers","from":"encounters","fromCols":["PROVIDER"],"to":"providers","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Provider\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"encounters.PAYER>payers","from":"encounters","fromCols":["PAYER"],"to":"payers","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Payer\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"imaging_studies.PATIENT>patients","from":"imaging_studies","fromCols":["PATIENT"],"to":"patients","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Patient\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"imaging_studies.ENCOUNTER>encounters","from":"imaging_studies","fromCols":["ENCOUNTER"],"to":"encounters","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Encounter\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"immunizations.PATIENT>patients","from":"immunizations","fromCols":["PATIENT"],"to":"patients","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Patient\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"immunizations.ENCOUNTER>encounters","from":"immunizations","fromCols":["ENCOUNTER"],"to":"encounters","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Encounter\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"medications.PATIENT>patients","from":"medications","fromCols":["PATIENT"],"to":"patients","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Patient\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"medications.PAYER>payers","from":"medications","fromCols":["PAYER"],"to":"payers","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Payer\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"medications.ENCOUNTER>encounters","from":"medications","fromCols":["ENCOUNTER"],"to":"encounters","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Encounter\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"observations.PATIENT>patients","from":"observations","fromCols":["PATIENT"],"to":"patients","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Patient\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"observations.ENCOUNTER>encounters","from":"observations","fromCols":["ENCOUNTER"],"to":"encounters","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Encounter\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"payer_transitions.PATIENT>patients","from":"payer_transitions","fromCols":["PATIENT"],"to":"patients","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Patient\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"payer_transitions.PAYER>payers","from":"payer_transitions","fromCols":["PAYER"],"to":"payers","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Payer\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"payer_transitions.SECONDARY_PAYER>payers","from":"payer_transitions","fromCols":["SECONDARY_PAYER"],"to":"payers","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Secondary Payer\" (target column = target PK)","role":"secondary","condition":"","self":false,"flags":[]},{"id":"procedures.PATIENT>patients","from":"procedures","fromCols":["PATIENT"],"to":"patients","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Patient\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"procedures.ENCOUNTER>encounters","from":"procedures","fromCols":["ENCOUNTER"],"to":"encounters","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Encounter\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"providers.ORGANIZATION>organizations","from":"providers","fromCols":["ORGANIZATION"],"to":"organizations","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Organization\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"supplies.PATIENT>patients","from":"supplies","fromCols":["PATIENT"],"to":"patients","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Patient\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"supplies.ENCOUNTER>encounters","from":"supplies","fromCols":["ENCOUNTER"],"to":"encounters","toCols":["Id"],"card":"N:1","source":"doc","evidence":"Dictionary prose: \"Foreign key to the Encounter\" (target column = target PK)","role":"","condition":"","self":false,"flags":[]},{"id":"patient_expenses.PATIENT_ID>patients","from":"patient_expenses","fromCols":["PATIENT_ID"],"to":"patients","toCols":["Id"],"card":"N:1","source":"inf","evidence":"Name stem \"PATIENT\" matches table patients","role":"","condition":"","self":false,"flags":[],"confidence":"high"},{"id":"patient_expenses.PAYER_ID>payers","from":"patient_expenses","fromCols":["PAYER_ID"],"to":"payers","toCols":["Id"],"card":"N:1","source":"inf","evidence":"Name stem \"PAYER\" matches table payers","role":"","condition":"","self":false,"flags":[],"confidence":"high"}],"issues":[{"id":"I001","sev":"high","cat":"Table missing","table":"patient_expenses","column":"","msg":"patient_expenses.csv is written by the exporter but has no section in the data dictionary.","evidence":"CSVConstants.java"},{"id":"I002","sev":"med","cat":"No primary key","table":"allergies","column":"","msg":"No column marked :key:. Rows are identified only by their foreign keys and dates.","evidence":"CSV-File-Data-Dictionary.md"},{"id":"I003","sev":"med","cat":"No primary key","table":"conditions","column":"","msg":"No column marked :key:. Rows are identified only by their foreign keys and dates.","evidence":"CSV-File-Data-Dictionary.md"},{"id":"I004","sev":"med","cat":"No primary key","table":"devices","column":"","msg":"No column marked :key:. Rows are identified only by their foreign keys and dates.","evidence":"CSV-File-Data-Dictionary.md"},{"id":"I005","sev":"low","cat":"Name mismatch","table":"imaging_studies","column":"BODYSITE_CODE","msg":"Dictionary spells it \"Body Site Code\". Merged case/space/underscore-insensitively.","evidence":"CSVConstants.java vs CSV-File-Data-Dictionary.md"},{"id":"I006","sev":"low","cat":"Name mismatch","table":"imaging_studies","column":"BODYSITE_DESCRIPTION","msg":"Dictionary spells it \"Body Site Description\". Merged case/space/underscore-insensitively.","evidence":"CSVConstants.java vs CSV-File-Data-Dictionary.md"},{"id":"I007","sev":"med","cat":"No primary key","table":"imaging_studies","column":"","msg":"No column marked :key:. Rows are identified only by their foreign keys and dates.","evidence":"CSV-File-Data-Dictionary.md"},{"id":"I008","sev":"med","cat":"Probable rename","table":"immunizations","column":"BASE_COST","msg":"Exporter writes BASE_COST; dictionary documents \"Cost\". Paired by shared name token, verify before relying on the description.","evidence":"CSVConstants.java vs CSV-File-Data-Dictionary.md"},{"id":"I009","sev":"med","cat":"No primary key","table":"immunizations","column":"","msg":"No column marked :key:. Rows are identified only by their foreign keys and dates.","evidence":"CSV-File-Data-Dictionary.md"},{"id":"I010","sev":"med","cat":"No primary key","table":"medications","column":"","msg":"No column marked :key:. Rows are identified only by their foreign keys and dates.","evidence":"CSV-File-Data-Dictionary.md"},{"id":"I011","sev":"med","cat":"No primary key","table":"observations","column":"","msg":"No column marked :key:. Rows are identified only by their foreign keys and dates.","evidence":"CSV-File-Data-Dictionary.md"},{"id":"I012","sev":"high","cat":"Column count","table":"organizations","column":"","msg":"Exporter writes 12 columns, dictionary documents 11.","evidence":"CSVConstants.java vs CSV-File-Data-Dictionary.md"},{"id":"I013","sev":"med","cat":"Column missing","table":"organizations","column":"NPI","msg":"Written by exporter but not documented.","evidence":"CSVConstants.java"},{"id":"I014","sev":"med","cat":"No primary key","table":"patient_expenses","column":"","msg":"No column marked :key:. Rows are identified only by their foreign keys and dates.","evidence":"CSV-File-Data-Dictionary.md"},{"id":"I015","sev":"med","cat":"Probable rename","table":"patients","column":"FIPS","msg":"Exporter writes FIPS; dictionary documents \"FIPS County Code\". Paired by shared name token, verify before relying on the description.","evidence":"CSVConstants.java vs CSV-File-Data-Dictionary.md"},{"id":"I016","sev":"med","cat":"Probable rename","table":"payer_transitions","column":"START_DATE","msg":"Exporter writes START_DATE; dictionary documents \"Start_Year\". Paired by shared name token, verify before relying on the description.","evidence":"CSVConstants.java vs CSV-File-Data-Dictionary.md"},{"id":"I017","sev":"med","cat":"Probable rename","table":"payer_transitions","column":"END_DATE","msg":"Exporter writes END_DATE; dictionary documents \"End_Year\". Paired by shared name token, verify before relying on the description.","evidence":"CSVConstants.java vs CSV-File-Data-Dictionary.md"},{"id":"I018","sev":"med","cat":"Probable rename","table":"payer_transitions","column":"PLAN_OWNERSHIP","msg":"Exporter writes PLAN_OWNERSHIP; dictionary documents \"Ownership\". Paired by shared name token, verify before relying on the description.","evidence":"CSVConstants.java vs CSV-File-Data-Dictionary.md"},{"id":"I019","sev":"med","cat":"No primary key","table":"payer_transitions","column":"","msg":"No column marked :key:. Rows are identified only by their foreign keys and dates.","evidence":"CSV-File-Data-Dictionary.md"},{"id":"I020","sev":"med","cat":"No primary key","table":"procedures","column":"","msg":"No column marked :key:. Rows are identified only by their foreign keys and dates.","evidence":"CSV-File-Data-Dictionary.md"},{"id":"I021","sev":"high","cat":"Column count","table":"providers","column":"","msg":"Exporter writes 14 columns, dictionary documents 13.","evidence":"CSVConstants.java vs CSV-File-Data-Dictionary.md"},{"id":"I022","sev":"med","cat":"Column missing","table":"providers","column":"NPI","msg":"Written by exporter but not documented.","evidence":"CSVConstants.java"},{"id":"I023","sev":"med","cat":"No primary key","table":"supplies","column":"","msg":"No column marked :key:. Rows are identified only by their foreign keys and dates.","evidence":"CSV-File-Data-Dictionary.md"},{"id":"I024","sev":"low","cat":"Missing description","table":"patient_expenses","column":"PATIENT_ID","msg":"No description.","evidence":"CSV-File-Data-Dictionary.md"},{"id":"I025","sev":"low","cat":"Missing description","table":"patient_expenses","column":"YEAR","msg":"No description.","evidence":"CSV-File-Data-Dictionary.md"},{"id":"I026","sev":"low","cat":"Missing description","table":"patient_expenses","column":"PAYER_ID","msg":"No description.","evidence":"CSV-File-Data-Dictionary.md"},{"id":"I027","sev":"low","cat":"Missing description","table":"patient_expenses","column":"HEALTHCARE_EXPENSES","msg":"No description.","evidence":"CSV-File-Data-Dictionary.md"},{"id":"I028","sev":"low","cat":"Missing description","table":"patient_expenses","column":"INSURANCE_COSTS","msg":"No description.","evidence":"CSV-File-Data-Dictionary.md"},{"id":"I029","sev":"low","cat":"Missing description","table":"patient_expenses","column":"COVERED_COSTS","msg":"No description.","evidence":"CSV-File-Data-Dictionary.md"},{"id":"I030","sev":"med","cat":"Fan-out risk","table":"claims_transactions","column":"PATIENTINSURANCEID","msg":"Joins to payer_transitions.MEMBERID, which is not a unique key. Expect one row per payer_transitions record, filter by date range.","evidence":"Dictionary prose: \"Foreign key to the Payer Transitions table member ID\" (target column = target PK)"},{"id":"I031","sev":"low","cat":"Undeclared join","table":"patient_expenses","column":"PATIENT_ID","msg":"No FK documented. Inferred from name to patients.Id.","evidence":"name match"},{"id":"I032","sev":"low","cat":"Undeclared join","table":"patient_expenses","column":"PAYER_ID","msg":"No FK documented. Inferred from name to payers.Id.","evidence":"name match"}],"queryPaths":[{"id":"p1","label":"Diagnoses per encounter","desc":"Conditions attached to the encounter where they were diagnosed, and the patient.","tables":["conditions","encounters","patients"],"rels":["conditions.ENCOUNTER>encounters","conditions.PATIENT>patients","encounters.PATIENT>patients"]},{"id":"p2","label":"Who treated, where","desc":"Encounter to provider (clinician) to organization.","tables":["encounters","providers","organizations"],"rels":["encounters.PROVIDER>providers","providers.ORGANIZATION>organizations","encounters.ORGANIZATION>organizations"]},{"id":"p3","label":"Claim line items","desc":"Transactions roll up to a claim; claim carries patient and billing provider.","tables":["claims_transactions","claims","patients","providers"],"rels":["claims_transactions.CLAIMID>claims","claims.PATIENTID>patients","claims.PROVIDERID>providers"]},{"id":"p4","label":"Coverage timeline","desc":"Payer per patient over time. Join on date range, not just the key.","tables":["payer_transitions","patients","payers"],"rels":["payer_transitions.PATIENT>patients","payer_transitions.PAYER>payers"]},{"id":"p5","label":"Medication spend by payer","desc":"Medication rows carry the payer directly.","tables":["medications","payers","encounters","patients"],"rels":["medications.PAYER>payers","medications.ENCOUNTER>encounters","encounters.PATIENT>patients"]}],"validation":[{"check":"Every relationship resolves to existing columns","ok":true,"detail":"45 checked"},{"check":"Every preset query path resolves","ok":true,"detail":"5 checked"},{"check":"Relationship ids unique","ok":true,"detail":"45 ids"},{"check":"Every table has a subject area","ok":true,"detail":"ok"}]}</script>
+<script>
+(function(){
+'use strict';
+var M = JSON.parse(document.getElementById('model').textContent);
+var $ = function(s, r){ return (r||document).querySelector(s); };
+var $$ = function(s, r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); };
+var esc = function(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+var NS = 'http://www.w3.org/2000/svg';
+var clamp = function(v,a,b){ return Math.max(a, Math.min(b, v)); };
+var nk = function(s){ return String(s).toLowerCase().replace(/[\s_]+/g,''); };
+
+/* ---------- SVG styles (also embedded into PNG export) ---------- */
+var SVG_CSS = [
+ '.bg{fill:var(--bg)}',
+ '.node .body{fill:var(--surface);stroke:var(--line);stroke-width:1}',
+ '.node .head{fill:var(--surface-2)}',
+ '.ar0{fill:var(--a1)}.ar1{fill:var(--a2)}.ar2{fill:var(--a3)}.ar3{fill:var(--a4)}.ar4{fill:var(--a5)}.ar5{fill:var(--a6)}',
+ '.node .tname{font:600 12.5px var(--mono);fill:var(--ink)}',
+ '.node .tsub{font:500 9px var(--ui);fill:var(--muted);letter-spacing:.08em}',
+ '.col .hit{fill:transparent}',
+ '.col:hover .hit{fill:var(--hover)}',
+ '.col .cn{font:11.5px var(--mono);fill:var(--ink)}',
+ '.col .ct{font:10.5px var(--mono);fill:var(--muted)}',
+ '.col .ct.hubref{fill:var(--accent)}',
+ '.col .ck{font:700 8.5px var(--mono);fill:var(--accent);letter-spacing:.04em}',
+ '.col .ck.fk{fill:var(--muted)}',
+ '.col.flag .cn{fill:var(--warn);font-style:italic}',
+ '.col.jc .hit{fill:var(--hlbg)}',
+ '.col.jc .cn{font-weight:700}',
+ '.col.flash .hit{fill:var(--hlbg);stroke:var(--accent)}',
+ '.more{font:italic 10.5px var(--ui);fill:var(--muted)}',
+ '.ib circle{fill:var(--crit)}.ib.med circle{fill:var(--warn)}.ib.low circle{fill:var(--low)}',
+ '.ib text{font:700 9px var(--ui);fill:var(--on-sev)}',
+ '.edge .ln{fill:none;stroke:var(--edge);stroke-width:1.25}',
+ '.edge.inf .ln{stroke:var(--inf);stroke-dasharray:6 4}',
+ '.edge .mk{fill:none;stroke:var(--edge);stroke-width:1.25}',
+ '.edge.inf .mk{stroke:var(--inf)}',
+ '.edge .hit{fill:none;stroke:transparent;stroke-width:12}',
+ '.edge.on .ln,.edge.on .mk{stroke-width:2.3}',
+ '.edge.hov .ln,.edge.hov .mk{stroke:var(--accent);stroke-width:2.6}',
+ '.dim .node{opacity:.2}.dim .edge{opacity:.06}.dim .lane{opacity:.5}',
+ '.dim .node.on,.dim .node.nb,.dim .node.match{opacity:1}',
+ '.dim .edge.on{opacity:1}',
+ '.node.on .body{stroke:var(--accent);stroke-width:2}',
+ '.node.sel .body{stroke:var(--accent);stroke-width:2.6}',
+ '.node.match .body{stroke:var(--warn);stroke-width:2.2}',
+ '.node{cursor:pointer}',
+ '.node:focus{outline:none}.node:focus-visible .body{stroke:var(--accent);stroke-width:3}',
+ '.lane rect{fill:var(--lane)}',
+ '.lane text{font:600 11px var(--ui);letter-spacing:.12em}',
+ '.lod .col text,.lod .more{display:none}'
+].join('\n');
+var st = document.createElement('style'); st.textContent = SVG_CSS; document.head.appendChild(st);
+
+/* ---------- model indexes ---------- */
+var T = new Map();
+M.tables.forEach(function(t){ T.set(t.id, t); t.out = []; t.inc = []; t.iss = []; t.joinCols = new Set(); });
+var areaIdx = new Map(M.subjectAreas.map(function(a,i){ return [a.id, i % 6]; }));
+var areaLabel = new Map(M.subjectAreas.map(function(a){ return [a.id, a.label]; }));
+var R = M.relationships;
+var RBY = new Map();
+R.forEach(function(r){
+  RBY.set(r.id, r);
+  var f = T.get(r.from), to = T.get(r.to);
+  f.out.push(r); to.inc.push(r);
+  r.hub = !!to.hub && r.from !== r.to;
+  r.fromCols.forEach(function(c){ f.joinCols.add(c); });
+  r.toCols.forEach(function(c){ to.joinCols.add(c); });
+});
+M.issues.forEach(function(i){ var t = T.get(i.table); if (t) t.iss.push(i); });
+var colTables = new Map();
+M.tables.forEach(function(t){ t.columns.forEach(function(c){ var k = nk(c.name); if (!colTables.has(k)) colTables.set(k, []); colTables.get(k).push(t.id); }); });
+var schemas = Array.from(new Set(M.tables.map(function(t){ return t.schema; })));
+var SEVRANK = {high:0, med:1, low:2, info:3};
+
+/* ---------- per-viewer storage (optional) ---------- */
+var store = {
+  get: function(k){ try { var v = localStorage.getItem('erd:' + M.meta.short + ':' + k); return v ? JSON.parse(v) : null; } catch(e){ return null; } },
+  set: function(k, v){ try { localStorage.setItem('erd:' + M.meta.short + ':' + k, JSON.stringify(v)); return true; } catch(e){ return false; } }
+};
+
+/* ---------- state ---------- */
+var prefs = store.get('prefs') || {};
+var S = {
+  colMode: prefs.colMode || (M.tables.length > 25 ? 'names' : 'keys'),
+  layout: prefs.layout || (M.meta.hasPositions ? 'original' : 'area'),
+  hops: 1, sel: null, hover: null, hoverEdge: null, path: null, q: '', matches: null, flash: null,
+  f: { schemas: new Set(schemas), areas: new Set(M.subjectAreas.map(function(a){ return a.id; })), doc: true, inf: true,
+       hideLookup: false, hideIsolated: false, showHub: !!prefs.showHub },
+  pos: new Map(), dims: new Map(), vis: new Set(), focusSet: null, lanes: [],
+  view: { x: 0, y: 0, k: 1 }
+};
+if (S.layout === 'original' && !M.meta.hasPositions) S.layout = 'area';
+if (S.layout === 'focus') S.layout = 'area';
+function savePrefs(){ store.set('prefs', { colMode: S.colMode, layout: S.layout === 'focus' ? 'area' : S.layout, showHub: S.f.showHub }); }
+
+var svg = $('#svg'), vp = $('#vp'), gN = $('#nodes'), gE = $('#edges'), gL = $('#lanes'), stage = $('#stage'), tip = $('#tip');
+
+/* ---------- geometry ---------- */
+var ROW = 18, HEAD = 34, PADB = 6, CW = 6.95, MAXROWS = 18;
+function shortType(c){ return String(c.type || c.dictType || '').toLowerCase().replace('integer','int').replace(/\s+/g,''); }
+function hubRef(t, c){
+  if (S.f.showHub) return null;
+  for (var i = 0; i < t.out.length; i++){ var r = t.out[i]; if (r.hub && r.fromCols[0] === c.name && S.sel !== t.id) return r.to; }
+  return null;
+}
+function visibleCols(t){
+  if (S.colMode === 'names') return { rows: [], more: 0 };
+  var cols = S.colMode === 'all' ? t.columns : t.columns.filter(function(c){ return c.pk || t.joinCols.has(c.name) || c.fkMarker; });
+  if (S.flash && S.flash.t === t.id && S.colMode !== 'all' && cols.indexOf(t.columns[t.columns.findIndex(function(c){ return c.name === S.flash.col; })]) < 0){
+    cols = cols.concat(t.columns.filter(function(c){ return c.name === S.flash.col; }));
+  }
+  if (cols.length > MAXROWS) return { rows: cols.slice(0, MAXROWS - 1), more: cols.length - (MAXROWS - 1) };
+  return { rows: cols, more: 0 };
+}
+function measure(t){
+  var v = visibleCols(t);
+  var w = t.name.length * 8 + 70;
+  v.rows.forEach(function(c){ w = Math.max(w, (c.name.length + Math.min(shortType(c).length, 14)) * CW + 62); });
+  w = Math.round(clamp(w, 170, 330));
+  var n = v.rows.length + (v.more ? 1 : 0);
+  var h = HEAD + n * ROW + (n ? PADB : 0);
+  var d = { w: w, h: h, v: v };
+  S.dims.set(t.id, d);
+  return d;
+}
+function center(id){ var p = S.pos.get(id), d = S.dims.get(id); return { x: p.x + d.w / 2, y: p.y + d.h / 2 }; }
+
+/* ---------- visibility ---------- */
+function relPassesSource(r){ return (r.source === 'doc' && S.f.doc) || (r.source === 'inf' && S.f.inf); }
+function computeVis(){
+  var f = S.f, vis = new Set();
+  M.tables.forEach(function(t){
+    if (!f.schemas.has(t.schema) || !f.areas.has(t.area)) return;
+    if (f.hideLookup && t.isLookup) return;
+    if (f.hideIsolated && !t.out.concat(t.inc).some(relPassesSource)) return;
+    if (S.layout === 'focus' && S.focusSet && !S.focusSet.has(t.id)) return;
+    vis.add(t.id);
+  });
+  S.vis = vis;
+}
+function relVisible(r){
+  if (!relPassesSource(r) || !S.vis.has(r.from) || !S.vis.has(r.to)) return false;
+  if (r.hub && !S.f.showHub){
+    if (S.path && S.path.rels.indexOf(r.id) >= 0) return true;
+    if (S.sel === r.from) return true;
+    return false;
+  }
+  return true;
+}
+
+/* ---------- layouts ---------- */
+function visTables(){ return M.tables.filter(function(t){ return S.vis.has(t.id); }); }
+function degree(t){ return t.out.length + t.inc.length; }
+function layoutArea(){
+  /* 1. build each lane as a roughly square block of columns; 2. shelf-pack lanes to the viewport aspect ratio */
+  S.lanes = [];
+  var LG = 60, CG = 40, RG = 26, TOP = 60, blocks = [];
+  M.subjectAreas.forEach(function(a){
+    var ts = visTables().filter(function(t){ return t.area === a.id; });
+    if (!ts.length) return;
+    ts.sort(function(p, q){ return degree(q) - degree(p) || p.name.localeCompare(q.name); });
+    var colW = Math.max.apply(null, ts.map(function(t){ return S.dims.get(t.id).w; }));
+    var avgH = ts.reduce(function(s, t){ return s + S.dims.get(t.id).h + RG; }, 0) / ts.length;
+    var nc = clamp(Math.round(Math.sqrt(ts.length * avgH / (colW + CG))), 1, ts.length);
+    var hs = [], rel = []; for (var i = 0; i < nc; i++) hs.push(TOP);
+    ts.forEach(function(t){
+      var ci = hs.indexOf(Math.min.apply(null, hs));
+      rel.push([t.id, 20 + ci * (colW + CG), hs[ci]]);
+      hs[ci] += S.dims.get(t.id).h + RG;
+    });
+    blocks.push({ w: nc * colW + (nc - 1) * CG + 40, h: Math.max.apply(null, hs) + 10, rel: rel, label: a.label, ai: areaIdx.get(a.id) });
+  });
+  if (!blocks.length) return;
+  var aspect = (svg.clientWidth || 1200) / Math.max(1, (svg.clientHeight || 800));
+  var area = blocks.reduce(function(s, b){ return s + (b.w + LG) * (b.h + LG); }, 0);
+  var TW = Math.max(Math.max.apply(null, blocks.map(function(b){ return b.w; })), Math.sqrt(area * aspect) * 1.05);
+  var x = 0, y = 0, shelfH = 0;
+  blocks.forEach(function(b){
+    if (x > 0 && x + b.w > TW){ x = 0; y += shelfH + LG; shelfH = 0; }
+    b.rel.forEach(function(r){ S.pos.set(r[0], { x: x + r[1], y: y + r[2] }); });
+    S.lanes.push({ x: x, y: y, w: b.w, h: b.h, label: b.label, ai: b.ai });
+    x += b.w + LG; shelfH = Math.max(shelfH, b.h);
+  });
+}
+function layoutAuto(){
+  layoutArea(); S.lanes = [];
+  var ts = visTables(), n = ts.length; if (!n) return;
+  var idx = new Map(ts.map(function(t, i){ return [t.id, i]; }));
+  var P = ts.map(function(t){ return center(t.id); });
+  var D = ts.map(function(t){ return S.dims.get(t.id); });
+  var cx = P.reduce(function(s, p){ return s + p.x; }, 0) / n, cy = P.reduce(function(s, p){ return s + p.y; }, 0) / n;
+  P.forEach(function(p){ p.x -= cx; p.y -= cy; });
+  var E = [];
+  R.forEach(function(r){ if (relPassesSource(r) && idx.has(r.from) && idx.has(r.to) && r.from !== r.to) E.push([idx.get(r.from), idx.get(r.to), r.hub ? 0.08 : 1]); });
+  var deg = ts.map(function(t){ return degree(t); }), maxd = Math.max.apply(null, deg.concat([1]));
+  /* ideal edge length scales with the boxes actually drawn (names-only boxes are far smaller than keys/all) */
+  var L = D.reduce(function(s, d){ return s + 0.75 * d.w + 0.6 * d.h; }, 0) / n + 70, REP = 0.06 * L * L * L;
+  for (var it = 0; it < 420; it++){
+    var a = 1 - it / 420, F = P.map(function(){ return { x: 0, y: 0 }; });
+    for (var i = 0; i < n; i++) for (var j = i + 1; j < n; j++){
+      var dx = P[i].x - P[j].x, dy = P[i].y - P[j].y, d2 = dx * dx + dy * dy + 100, d = Math.sqrt(d2);
+      var f = REP / d2;
+      F[i].x += f * dx / d; F[i].y += f * dy / d; F[j].x -= f * dx / d; F[j].y -= f * dy / d;
+    }
+    E.forEach(function(e){
+      var p = P[e[0]], q = P[e[1]], dx = q.x - p.x, dy = q.y - p.y, d = Math.sqrt(dx * dx + dy * dy) + .01;
+      var f = 0.035 * e[2] * (d - L);
+      F[e[0]].x += f * dx / d; F[e[0]].y += f * dy / d; F[e[1]].x -= f * dx / d; F[e[1]].y -= f * dy / d;
+    });
+    for (i = 0; i < n; i++){
+      var g = (deg[i] ? 0.012 : 0.03) * (1 + 5 * deg[i] / maxd);
+      F[i].x -= g * P[i].x; F[i].y -= g * P[i].y * 1.6;
+      var m = Math.sqrt(F[i].x * F[i].x + F[i].y * F[i].y), cap = 60 * a + 2;
+      if (m > cap){ F[i].x *= cap / m; F[i].y *= cap / m; }
+      P[i].x += F[i].x; P[i].y += F[i].y;
+    }
+  }
+  /* collision removal on real rectangles */
+  var PAD = 30;
+  for (var pass = 0; pass < 300; pass++){
+    var moved = false;
+    for (i = 0; i < n; i++) for (j = i + 1; j < n; j++){
+      var ox = (D[i].w + D[j].w) / 2 + PAD - Math.abs(P[i].x - P[j].x);
+      var oy = (D[i].h + D[j].h) / 2 + PAD - Math.abs(P[i].y - P[j].y);
+      if (ox > 0 && oy > 0){
+        moved = true;
+        if (ox < oy){ var sx = (P[i].x < P[j].x ? -1 : 1) * ox / 2; P[i].x += sx; P[j].x -= sx; }
+        else { var sy = (P[i].y < P[j].y ? -1 : 1) * oy / 2; P[i].y += sy; P[j].y -= sy; }
+      }
+    }
+    if (!moved) break;
+  }
+  ts.forEach(function(t, i){ S.pos.set(t.id, { x: Math.round(P[i].x - D[i].w / 2), y: Math.round(P[i].y - D[i].h / 2) }); });
+}
+function focusRoot(){
+  if (S.sel && T.has(S.sel)) return S.sel;
+  var best = null;
+  M.tables.forEach(function(t){ if (!best || degree(t) > degree(best)) best = t; });
+  return best.id;
+}
+function computeFocusSet(){
+  var root = focusRoot(); S.sel = root;
+  var lvl = new Map([[root, 0]]), frontier = [root];
+  for (var h = 1; h <= S.hops; h++){
+    var nx = [];
+    frontier.forEach(function(id){
+      var t = T.get(id);
+      t.out.concat(t.inc).forEach(function(r){
+        if (!relPassesSource(r)) return;
+        if (r.hub && !S.f.showHub && r.to !== root && r.from !== root) return;
+        var o = r.from === id ? r.to : r.from;
+        if (!lvl.has(o)){ lvl.set(o, h); nx.push(o); }
+      });
+    });
+    frontier = nx;
+  }
+  S.focusSet = new Set(lvl.keys()); S.focusLvl = lvl;
+}
+function layoutFocus(){
+  S.lanes = [];
+  var root = S.sel, d0 = S.dims.get(root);
+  S.pos.set(root, { x: -d0.w / 2, y: -d0.h / 2 });
+  [1, 2].forEach(function(h){
+    var ring = visTables().filter(function(t){ return S.focusLvl.get(t.id) === h; });
+    if (!ring.length) return;
+    ring.sort(function(a, b){ return areaIdx.get(a.area) - areaIdx.get(b.area) || a.name.localeCompare(b.name); });
+    var perim = ring.reduce(function(s, t){ var d = S.dims.get(t.id); return s + Math.max(d.w, d.h) + 40; }, 0);
+    var rad = Math.max(h * 380, perim / (2 * Math.PI));
+    ring.forEach(function(t, i){
+      var ang = -Math.PI / 2 + 2 * Math.PI * i / ring.length, d = S.dims.get(t.id);
+      S.pos.set(t.id, { x: Math.round(rad * 1.25 * Math.cos(ang) - d.w / 2), y: Math.round(rad * Math.sin(ang) - d.h / 2) });
+    });
+  });
+}
+function layoutOriginal(){
+  S.lanes = [];
+  M.tables.forEach(function(t){ if (t.pos) S.pos.set(t.id, { x: t.pos.x, y: t.pos.y }); });
+}
+function layoutCustom(){
+  layoutArea(); S.lanes = [];
+  var c = store.get('custom') || S.customMem || {};
+  Object.keys(c).forEach(function(id){ if (T.has(id)) S.pos.set(id, { x: c[id].x, y: c[id].y }); });
+}
+function runLayout(){
+  if (S.layout === 'focus') computeFocusSet(); else S.focusSet = null;
+  computeVis();
+  M.tables.forEach(measure);
+  if (S.layout === 'area') layoutArea();
+  else if (S.layout === 'auto') layoutAuto();
+  else if (S.layout === 'focus') layoutFocus();
+  else if (S.layout === 'original') layoutOriginal();
+  else layoutCustom();
+  M.tables.forEach(function(t){ if (!S.pos.has(t.id)) S.pos.set(t.id, { x: 0, y: 0 }); });
+}
+
+/* ---------- rendering ---------- */
+function el(tag, attrs, parent){
+  var e = document.createElementNS(NS, tag);
+  for (var k in attrs) if (attrs[k] != null) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function txt(tag, attrs, s, parent){ var e = el(tag, attrs, parent); e.textContent = s; return e; }
+var nodeEls = new Map(), edgeEls = new Map();
+function fitText(s, maxChars){ return s.length > maxChars ? s.slice(0, Math.max(1, maxChars - 1)) + '\u2026' : s; }
+
+function renderLanes(){
+  gL.textContent = '';
+  S.lanes.forEach(function(l){
+    var g = el('g', { 'class': 'lane' }, gL);
+    el('rect', { x: l.x, y: l.y, width: l.w, height: l.h, rx: 10 }, g);
+    txt('text', { x: l.x + 20, y: l.y + 30, 'class': 'ar' + l.ai }, l.label.toUpperCase(), g);
+  });
+}
+function renderNodes(){
+  gN.textContent = ''; nodeEls.clear();
+  visTables().forEach(function(t){
+    var p = S.pos.get(t.id), d = S.dims.get(t.id), ai = areaIdx.get(t.area);
+    var g = el('g', { 'class': 'node', transform: 'translate(' + p.x + ',' + p.y + ')', 'data-id': t.id, tabindex: 0, role: 'button',
+      'aria-label': t.name + ', ' + t.columns.length + ' columns, ' + areaLabel.get(t.area) }, gN);
+    el('rect', { 'class': 'body', width: d.w, height: d.h, rx: 6 }, g);
+    el('path', { 'class': 'head', d: 'M0 6a6 6 0 0 1 6-6h' + (d.w - 12) + 'a6 6 0 0 1 6 6v' + (HEAD - 6) + 'h-' + d.w + 'z' }, g);
+    el('rect', { 'class': 'ar' + ai, x: 0, y: 6, width: 4, height: HEAD - 6 }, g);
+    txt('text', { 'class': 'tsub', x: 12, y: 13 }, (t.schema + ' \u00b7 ' + t.columns.length + ' cols').toUpperCase(), g);
+    txt('text', { 'class': 'tname', x: 12, y: 27 }, fitText(t.name, Math.floor((d.w - 40) / 7.6)), g);
+    var worst = t.iss.filter(function(i){ return i.sev === 'high' || i.sev === 'med'; });
+    if (worst.length){
+      var sev = worst.some(function(i){ return i.sev === 'high'; }) ? 'high' : 'med';
+      var b = el('g', { 'class': 'ib ' + sev, transform: 'translate(' + (d.w - 14) + ',17)' }, g);
+      el('circle', { r: 8 }, b);
+      txt('text', { 'text-anchor': 'middle', y: 3 }, String(worst.length), b);
+      var tt = document.createElementNS(NS, 'title'); tt.textContent = worst.length + ' high or medium data issues'; b.appendChild(tt);
+    }
+    d.v.rows.forEach(function(c, i){
+      var y = HEAD + i * ROW;
+      var cls = 'col' + (c.flags && c.flags.length ? ' flag' : '') + (S.flash && S.flash.t === t.id && S.flash.col === c.name ? ' flash' : '');
+      var cg = el('g', { 'class': cls, 'data-col': c.name, transform: 'translate(0,' + y + ')' }, g);
+      el('rect', { 'class': 'hit', x: 1, y: 1, width: d.w - 2, height: ROW - 1 }, cg);
+      var isFk = t.joinCols.has(c.name) && t.out.some(function(r){ return r.fromCols[0] === c.name; });
+      if (c.pk) txt('text', { 'class': 'ck', x: 8, y: 12.5 }, 'PK', cg);
+      else if (isFk) txt('text', { 'class': 'ck fk', x: 8, y: 12.5 }, 'FK', cg);
+      var hr = hubRef(t, c), ty = hr ? '\u2192 ' + hr : shortType(c);
+      var avail = Math.floor((d.w - 34) / CW);
+      var showT = c.name.length + ty.length + 2 <= avail;
+      txt('text', { 'class': 'cn', x: 28, y: 12.5 }, fitText(c.name, showT ? avail : avail), cg);
+      if (showT) txt('text', { 'class': 'ct' + (hr ? ' hubref' : ''), x: d.w - 8, y: 12.5, 'text-anchor': 'end' }, ty, cg);
+    });
+    if (d.v.more) txt('text', { 'class': 'more', x: 28, y: HEAD + d.v.rows.length * ROW + 12.5 }, '+' + d.v.more + ' more in the inspector', g);
+    nodeEls.set(t.id, g);
+  });
+}
+function anchor(t, col){
+  var p = S.pos.get(t.id), d = S.dims.get(t.id), y = p.y + HEAD / 2;
+  for (var i = 0; i < d.v.rows.length; i++) if (d.v.rows[i].name === col){ y = p.y + HEAD + i * ROW + ROW / 2; break; }
+  return { l: p.x, r: p.x + d.w, y: y };
+}
+function edgeGeom(r){
+  var a = anchor(T.get(r.from), r.fromCols[0]), b = anchor(T.get(r.to), r.toCols[0]);
+  var x1, x2, d1, d2;
+  if (r.from === r.to){ x1 = a.r; x2 = b.r; d1 = d2 = 1; }
+  else if (b.l > a.r + 36){ x1 = a.r; d1 = 1; x2 = b.l; d2 = -1; }
+  else if (a.l > b.r + 36){ x1 = a.l; d1 = -1; x2 = b.r; d2 = 1; }
+  else if (Math.abs(a.r - b.r) <= Math.abs(a.l - b.l)){ x1 = a.r; x2 = b.r; d1 = d2 = 1; }
+  else { x1 = a.l; x2 = b.l; d1 = d2 = -1; }
+  var s = 16, p1 = x1 + d1 * s, p2 = x2 + d2 * s;
+  var bend = d1 === d2 ? 50 + Math.abs(b.y - a.y) * 0.15 + Math.abs(p2 - p1) * 0.2 : Math.max(36, Math.abs(p2 - p1) * 0.45);
+  var path = 'M' + x1 + ' ' + a.y + 'H' + p1 + 'C' + (p1 + d1 * bend) + ' ' + a.y + ' ' + (p2 + d2 * bend) + ' ' + b.y + ' ' + p2 + ' ' + b.y + 'H' + x2;
+  var mk = '';
+  /* from end: crow's foot (many) or bar (one) */
+  if (r.card === '1:1') mk += 'M' + (x1 + d1 * 8) + ' ' + (a.y - 6) + 'V' + (a.y + 6);
+  else mk += 'M' + (x1 + d1 * 11) + ' ' + a.y + 'L' + x1 + ' ' + (a.y - 6) + 'M' + (x1 + d1 * 11) + ' ' + a.y + 'L' + x1 + ' ' + (a.y + 6) + 'M' + (x1 + d1 * 14) + ' ' + (a.y - 5) + 'V' + (a.y + 5);
+  /* to end: exactly one (double bar) */
+  mk += 'M' + (x2 + d2 * 6) + ' ' + (b.y - 6) + 'V' + (b.y + 6) + 'M' + (x2 + d2 * 10) + ' ' + (b.y - 6) + 'V' + (b.y + 6);
+  return { path: path, mk: mk };
+}
+function renderEdges(){
+  gE.textContent = ''; edgeEls.clear();
+  R.forEach(function(r){
+    if (!relVisible(r)) return;
+    var gm = edgeGeom(r);
+    var g = el('g', { 'class': 'edge ' + r.source, 'data-r': r.id }, gE);
+    el('path', { 'class': 'hit', d: gm.path }, g);
+    el('path', { 'class': 'ln', d: gm.path }, g);
+    el('path', { 'class': 'mk', d: gm.mk }, g);
+    edgeEls.set(r.id, g);
+  });
+}
+function updateEdgesFor(id){
+  var t = T.get(id);
+  t.out.concat(t.inc).forEach(function(r){
+    var g = edgeEls.get(r.id); if (!g) return;
+    var gm = edgeGeom(r), ps = g.querySelectorAll('path');
+    ps[0].setAttribute('d', gm.path); ps[1].setAttribute('d', gm.path); ps[2].setAttribute('d', gm.mk);
+  });
+}
+function applyHL(){
+  var focus = S.hover || S.sel, dim = false;
+  nodeEls.forEach(function(g){ g.classList.remove('on', 'nb', 'sel', 'match'); $$('.col.jc', g).forEach(function(c){ c.classList.remove('jc'); }); });
+  edgeEls.forEach(function(g){ g.classList.remove('on', 'hov'); });
+  function onEdge(r){
+    var g = edgeEls.get(r.id); if (!g) return false;
+    g.classList.add('on');
+    markCol(r.from, r.fromCols); markCol(r.to, r.toCols);
+    return true;
+  }
+  function markCol(tid, cols){ var g = nodeEls.get(tid); if (!g) return; cols.forEach(function(c){ var ce = g.querySelector('.col[data-col="' + cssq(c) + '"]'); if (ce) ce.classList.add('jc'); }); }
+  if (S.hoverEdge){
+    var r = RBY.get(S.hoverEdge); dim = true; onEdge(r);
+    var ge = edgeEls.get(r.id); if (ge) ge.classList.add('hov');
+    [r.from, r.to].forEach(function(id){ var g = nodeEls.get(id); if (g) g.classList.add('on'); });
+  } else if (S.path){
+    dim = true;
+    S.path.rels.forEach(function(id){ onEdge(RBY.get(id)); });
+    S.path.tables.forEach(function(id){ var g = nodeEls.get(id); if (g) g.classList.add('on'); });
+  } else if (focus && nodeEls.has(focus)){
+    dim = true;
+    nodeEls.get(focus).classList.add('on');
+    var t = T.get(focus);
+    t.out.concat(t.inc).forEach(function(r){
+      if (onEdge(r)){ var o = r.from === focus ? r.to : r.from; var g = nodeEls.get(o); if (g) g.classList.add('nb'); }
+    });
+  }
+  if (S.layout === 'focus' && S.focusSet && !S.path && !S.hoverEdge){
+    S.focusSet.forEach(function(id){ var g = nodeEls.get(id); if (g && !g.classList.contains('on')) g.classList.add('nb'); });
+  }
+  if (S.matches){
+    dim = true;
+    S.matches.forEach(function(id){ var g = nodeEls.get(id); if (g) g.classList.add('match'); });
+  }
+  if (S.sel && nodeEls.has(S.sel)) nodeEls.get(S.sel).classList.add('sel');
+  svg.classList.toggle('dim', dim);
+}
+function cssq(s){ return String(s).replace(/["\\]/g, '\\$&'); }
+
+function hiddenHubCount(){
+  return R.filter(function(r){ return r.hub && !S.f.showHub && relPassesSource(r) && S.vis.has(r.from) && S.vis.has(r.to) && !relVisible(r); }).length;
+}
+function renderStatus(){
+  var drawn = edgeEls.size, hh = hiddenHubCount();
+  $('#status').textContent = S.vis.size + ' of ' + M.tables.length + ' tables \u00b7 ' + drawn + ' of ' + R.length + ' joins drawn' + (hh ? ' \u00b7 ' + hh + ' hub joins collapsed' : '');
+}
+function renderAll(keepView){
+  runLayout(); renderLanes(); renderNodes(); renderEdges(); applyHL(); renderStatus(); renderFilters();
+  $('#hops').hidden = S.layout !== 'focus';
+  if (S.layout === 'focus' && $('#p-table') && !$('#p-table').querySelector('#ctbody')) renderTablePane();
+  if (!keepView) fit();
+}
+function redraw(){ computeVis(); M.tables.forEach(measure); renderNodes(); renderEdges(); applyHL(); renderStatus(); renderFilters(); }
+
+/* ---------- view ---------- */
+function applyView(){ var v = S.view; vp.setAttribute('transform', 'translate(' + v.x + ',' + v.y + ') scale(' + v.k + ')'); svg.classList.toggle('lod', v.k < 0.42); }
+function zoomAt(f, cx, cy){
+  var v = S.view, k = clamp(v.k * f, 0.06, 3);
+  v.x = cx - (cx - v.x) * (k / v.k); v.y = cy - (cy - v.y) * (k / v.k); v.k = k; applyView();
+}
+function bbox(ids){
+  var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  ids.forEach(function(id){ if (!S.vis.has(id)) return; var p = S.pos.get(id), d = S.dims.get(id);
+    x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x + d.w); y1 = Math.max(y1, p.y + d.h); });
+  if (!ids.length || x0 === Infinity) return null;
+  if (ids.length === S.vis.size) S.lanes.forEach(function(l){ x0 = Math.min(x0, l.x); y0 = Math.min(y0, l.y); x1 = Math.max(x1, l.x + l.w); y1 = Math.max(y1, l.y + l.h); });
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+function fit(ids, maxK){
+  var b = bbox(ids || Array.from(S.vis)); if (!b) return;
+  var W = svg.clientWidth || 800, H = svg.clientHeight || 600;
+  var k = clamp(Math.min((W - 60) / b.w, (H - 90) / b.h), 0.06, maxK || 1.1);
+  S.view = { k: k, x: (W - b.w * k) / 2 - b.x * k, y: (H - b.h * k) / 2 - b.y * k + 10 };
+  applyView();
+}
+function centerOn(id){
+  var c = center(id), W = svg.clientWidth, H = svg.clientHeight, k = Math.max(S.view.k, 0.8);
+  S.view = { k: k, x: W / 2 - c.x * k, y: H / 2 - c.y * k }; applyView();
+}
+
+/* ---------- pointer: pan, pinch, drag, hover ---------- */
+var ptrs = new Map(), drag = null;
+function svgPt(e){ var b = svg.getBoundingClientRect(); return { x: e.clientX - b.left, y: e.clientY - b.top }; }
+svg.addEventListener('pointerdown', function(e){
+  if (e.button && e.button !== 0) return;
+  hideTip();
+  ptrs.set(e.pointerId, svgPt(e));
+  try { svg.setPointerCapture(e.pointerId); } catch(_){}
+  if (ptrs.size === 2){
+    var p = Array.from(ptrs.values());
+    drag = { type: 'pinch', d0: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y), k0: S.view.k, v0: { x: S.view.x, y: S.view.y }, m0: { x: (p[0].x + p[1].x) / 2, y: (p[0].y + p[1].y) / 2 } };
+    return;
+  }
+  var node = e.target.closest && e.target.closest('.node'), col = e.target.closest && e.target.closest('.col');
+  var pt = svgPt(e);
+  if (node){ var id = node.getAttribute('data-id'), p0 = S.pos.get(id);
+    drag = { type: 'node', id: id, col: col ? col.getAttribute('data-col') : null, sx: pt.x, sy: pt.y, ox: p0.x, oy: p0.y, moved: false };
+  } else {
+    var edge = e.target.closest && e.target.closest('.edge');
+    drag = { type: 'pan', sx: pt.x, sy: pt.y, vx: S.view.x, vy: S.view.y, moved: false, edge: edge ? edge.getAttribute('data-r') : null };
+  }
+});
+svg.addEventListener('pointermove', function(e){
+  if (!drag){ hoverAt(e); return; }
+  var pt = svgPt(e); if (ptrs.has(e.pointerId)) ptrs.set(e.pointerId, pt);
+  if (drag.type === 'pinch' && ptrs.size === 2){
+    var p = Array.from(ptrs.values()), d = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y), m = { x: (p[0].x + p[1].x) / 2, y: (p[0].y + p[1].y) / 2 };
+    var k = clamp(drag.k0 * d / drag.d0, 0.06, 3);
+    S.view.x = m.x - (drag.m0.x - drag.v0.x) * (k / drag.k0); S.view.y = m.y - (drag.m0.y - drag.v0.y) * (k / drag.k0); S.view.k = k; applyView();
+    return;
+  }
+  var dx = pt.x - drag.sx, dy = pt.y - drag.sy;
+  if (!drag.moved && Math.hypot(dx, dy) < 4) return;
+  drag.moved = true;
+  if (drag.type === 'node'){
+    var np = { x: Math.round(drag.ox + dx / S.view.k), y: Math.round(drag.oy + dy / S.view.k) };
+    S.pos.set(drag.id, np);
+    nodeEls.get(drag.id).setAttribute('transform', 'translate(' + np.x + ',' + np.y + ')');
+    updateEdgesFor(drag.id);
+  } else if (drag.type === 'pan'){
+    svg.classList.add('grabbing');
+    S.view.x = drag.vx + dx; S.view.y = drag.vy + dy; applyView();
+  }
+});
+function endPtr(e){
+  ptrs.delete(e.pointerId);
+  if (!drag) return;
+  if (drag.type === 'pinch'){ if (ptrs.size === 0) drag = null; return; }
+  svg.classList.remove('grabbing');
+  var dd = drag; drag = null;
+  if (dd.type === 'node'){
+    if (dd.moved) saveCustom();
+    else { select(dd.id, true); if (dd.col) showColumn(dd.id, dd.col); }
+  } else if (dd.type === 'pan' && !dd.moved){
+    if (dd.edge){ var r = RBY.get(dd.edge); showTipEdge(r, e); S.hoverEdge = r.id; applyHL(); }
+    else if (S.sel || S.path){ S.sel = null; S.path = null; S.hoverEdge = null; renderTablePane(); renderPathsPane(); if (S.layout !== 'focus') { redrawHubAware(); } else applyHL(); }
+  }
+}
+svg.addEventListener('pointerup', endPtr);
+svg.addEventListener('pointercancel', endPtr);
+svg.addEventListener('pointerleave', function(e){ if (e.pointerType === 'mouse' && !drag){ hideTip(); if (S.hover || S.hoverEdge){ S.hover = null; S.hoverEdge = null; applyHL(); } } });
+svg.addEventListener('wheel', function(e){ e.preventDefault(); var p = svgPt(e); zoomAt(Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)), p.x, p.y); hideTip(); }, { passive: false });
+
+var lastHover = '';
+function hoverAt(e){
+  if (e.pointerType === 'touch') return;
+  var t = e.target, col = t.closest && t.closest('.col'), node = t.closest && t.closest('.node'), edge = t.closest && t.closest('.edge');
+  var key = col ? 'c:' + node.getAttribute('data-id') + ':' + col.getAttribute('data-col') : node ? 'n:' + node.getAttribute('data-id') : edge ? 'e:' + edge.getAttribute('data-r') : '';
+  if (key !== lastHover){
+    lastHover = key;
+    var nh = node ? node.getAttribute('data-id') : null, ne = !node && edge ? edge.getAttribute('data-r') : null;
+    if (nh !== S.hover || ne !== S.hoverEdge){ S.hover = nh; S.hoverEdge = ne; applyHL(); }
+    if (col) showTipCol(T.get(nh), col.getAttribute('data-col'));
+    else if (node) showTipTable(T.get(nh));
+    else if (edge) showTipEdge(RBY.get(ne));
+    else hideTip();
+  }
+  if (key) placeTip(e);
+}
+
+/* ---------- tooltips ---------- */
+function relLine(r){
+  return '<code>' + esc(r.from + '.' + r.fromCols.join(',')) + '</code> \u2192 <code>' + esc(r.to + '.' + r.toCols.join(',')) + '</code>';
+}
+function showTipTable(t){
+  var nb = Array.from(new Set(t.out.map(function(r){ return r.to; }).concat(t.inc.map(function(r){ return r.from; })))).filter(function(x){ return x !== t.id; });
+  tip.innerHTML = '<h4 class="mono">' + esc(t.name) + '</h4><div class="m">' + esc(areaLabel.get(t.area)) + ' \u00b7 ' + t.columns.length + ' columns</div>' +
+    (t.description ? '<p>' + esc(clip(t.description, 200)) + '</p>' : '') +
+    '<p class="m"><span class="tag">Derived</span> ' + esc(t.summary) + '</p>' +
+    (nb.length ? '<p class="m">Connected: ' + esc(nb.slice(0, 10).join(', ')) + (nb.length > 10 ? ' +' + (nb.length - 10) + ' more' : '') + '</p>' : '');
+  tip.hidden = false;
+}
+function showTipCol(t, cn){
+  var c = t.columns.find(function(x){ return x.name === cn; }); if (!c) return;
+  var joins = t.out.concat(t.inc).filter(function(r){ return (r.from === t.id && r.fromCols.indexOf(cn) >= 0) || (r.to === t.id && r.toCols.indexOf(cn) >= 0); });
+  var others = (colTables.get(nk(cn)) || []).filter(function(x){ return x !== t.id; });
+  var types = [c.type ? 'model: ' + c.type : '', c.dictType ? 'dictionary: ' + c.dictType : ''].filter(Boolean).join(' \u00b7 ');
+  tip.innerHTML = '<h4 class="mono">' + esc(t.name + '.' + c.name) + '</h4><div class="m">' + esc(types || 'type not given') + (c.required ? ' \u00b7 required' : '') + (c.pk ? ' \u00b7 primary key' : '') + '</div>' +
+    (c.desc ? '<p>' + esc(clip(c.desc, 240)) + '</p>' : '<p class="m">No description in the dictionary.</p>') +
+    (c.flags && c.flags.length ? '<p class="m" style="color:var(--warn)">Flags: ' + esc(c.flags.join(', ')) + '</p>' : '') +
+    (joins.length ? '<p class="m">Joins: ' + joins.slice(0, 4).map(function(r){ return esc(r.from === t.id ? '\u2192 ' + r.to : '\u2190 ' + r.from) + ' <span class="src ' + r.source + '">' + r.source + '</span>'; }).join(', ') + (joins.length > 4 ? ' +' + (joins.length - 4) + ' more' : '') + '</p>' : '') +
+    '<p class="m">' + (others.length ? 'Also in ' + others.length + ' other table' + (others.length > 1 ? 's' : '') : 'Unique to this table') + '</p>';
+  tip.hidden = false;
+}
+function showTipEdge(r, e){
+  tip.innerHTML = '<h4>' + relLine(r) + '</h4><div class="m"><span class="src ' + r.source + '">' + (r.source === 'doc' ? 'Documented' : 'Inferred') + '</span> \u00b7 ' + esc(r.card) +
+    (r.role ? ' \u00b7 role: ' + esc(r.role) : '') + (r.confidence ? ' \u00b7 ' + esc(r.confidence) + ' confidence' : '') + '</div>' +
+    (r.condition ? '<p>Condition: <code>' + esc(r.condition) + '</code></p>' : '') +
+    '<p class="m">Evidence: ' + esc(r.evidence) + '</p>' + (r.flags && r.flags.length ? '<p class="m" style="color:var(--warn)">' + esc(r.flags.join(', ')) + '</p>' : '');
+  tip.hidden = false; if (e) placeTip(e);
+}
+function placeTip(e){
+  if (tip.hidden) return;
+  var b = stage.getBoundingClientRect(), x = e.clientX - b.left + 14, y = e.clientY - b.top + 14;
+  var w = tip.offsetWidth, h = tip.offsetHeight;
+  if (x + w > b.width - 8) x = Math.max(8, e.clientX - b.left - w - 14);
+  if (y + h > b.height - 8) y = Math.max(8, e.clientY - b.top - h - 14);
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+}
+function hideTip(){ tip.hidden = true; lastHover = ''; }
+function clip(s, n){ s = String(s); return s.length > n ? s.slice(0, n - 1) + '\u2026' : s; }
+
+/* ---------- selection & panel ---------- */
+function redrawHubAware(){ if (!S.f.showHub){ M.tables.forEach(measure); renderNodes(); renderEdges(); } applyHL(); renderStatus(); }
+function select(id, fromCanvas){
+  S.sel = id; S.path = null;
+  if (S.layout === 'focus'){ renderAll(); }
+  else redrawHubAware();
+  renderTablePane(); renderPathsPane(); showTab('table'); openPanel();
+}
+function openPanel(){ if (window.matchMedia('(max-width:900px)').matches){ $('#panel').classList.add('open'); $('#btnPanel').setAttribute('aria-expanded', 'true'); } }
+function showTab(n){
+  ['table', 'paths', 'issues', 'help'].forEach(function(k){ $('#t-' + k).setAttribute('aria-selected', String(k === n)); $('#p-' + k).hidden = k !== n; });
+}
+$$('.tabs [role=tab]').forEach(function(b){ b.addEventListener('click', function(){ showTab(b.id.slice(2)); }); });
+$('.tabs').addEventListener('keydown', function(e){
+  if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+  var tabs = $$('.tabs [role=tab]'), i = tabs.indexOf(document.activeElement); if (i < 0) return;
+  var n = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length]; n.focus(); n.click();
+});
+
+function relItem(r, dirOut){
+  var other = dirOut ? r.to : r.from;
+  return '<li><button class="lnk" data-goto="' + esc(other) + '">' + esc(other) + '</button> <span class="sub">via</span> <code>' + esc((dirOut ? r.fromCols : r.toCols).join(',')) + '</code>' +
+    (dirOut ? '' : ' <span class="sub">\u2190</span> <code>' + esc(r.fromCols.join(',')) + '</code>') +
+    ' <span class="src ' + r.source + '">' + r.source + '</span> <span class="sub">' + esc(r.card) + (r.role ? ' \u00b7 ' + esc(r.role) : '') + '</span>' +
+    (r.condition ? '<div class="sub">when <code>' + esc(r.condition) + '</code></div>' : '') + '</li>';
+}
+function issueItem(i, withTable){
+  return '<li class="iss"><span class="sev ' + i.sev + '">' + i.sev + '</span><span>' +
+    (withTable ? '<button class="lnk" data-goto="' + esc(i.table) + '"' + (i.column ? ' data-col="' + esc(i.column) + '"' : '') + '>' + esc(i.table + (i.column ? '.' + i.column : '')) + '</button> ' : (i.column ? '<code>' + esc(i.column) + '</code> ' : '')) +
+    esc(i.msg) + '</span><span class="ev">' + esc(i.cat) + ' \u00b7 ' + esc(i.evidence) + '</span></li>';
+}
+function overview(){
+  var doc = R.filter(function(r){ return r.source === 'doc'; }).length, sev = { high: 0, med: 0, low: 0, info: 0 };
+  M.issues.forEach(function(i){ sev[i.sev]++; });
+  var cols = M.tables.reduce(function(s, t){ return s + t.columns.length; }, 0);
+  return '<p class="sub">Nothing selected. Click or tap a table to inspect it.</p><h2 style="font-family:var(--ui)">' + esc(M.meta.name) + '</h2><p>' + esc(M.meta.blurb) + '</p>' +
+    '<div class="stats"><div class="stat"><b>' + M.tables.length + '</b><span>tables</span></div><div class="stat"><b>' + cols + '</b><span>columns</span></div><div class="stat"><b>' + R.length + '</b><span>joins</span></div>' +
+    '<div class="stat"><b>' + doc + '</b><span>documented</span></div><div class="stat"><b>' + (R.length - doc) + '</b><span>inferred</span></div><div class="stat"><b>' + M.issues.length + '</b><span>issues</span></div></div>' +
+    '<p><span class="sev high">high</span> ' + sev.high + ' &nbsp; <span class="sev med">med</span> ' + sev.med + ' &nbsp; <span class="sev low">low</span> ' + sev.low + ' &nbsp; <span class="sev info">info</span> ' + sev.info + '</p>' +
+    (M.meta.hubNote ? '<p class="note">' + esc(M.meta.hubNote) + '</p>' : '') +
+    '<h3>Most connected</h3><ul class="list">' + M.tables.slice().sort(function(a, b){ return degree(b) - degree(a); }).slice(0, 6).map(function(t){
+      return '<li><button class="lnk" data-goto="' + esc(t.id) + '">' + esc(t.name) + '</button> <span class="sub">' + degree(t) + ' joins</span></li>'; }).join('') + '</ul>';
+}
+function renderTablePane(){
+  var p = $('#p-table'), t = S.sel && T.get(S.sel);
+  if (!t){ p.innerHTML = overview(); return; }
+  var outs = t.out.slice().sort(function(a, b){ return a.to.localeCompare(b.to); });
+  var byTable = new Map(); t.inc.forEach(function(r){ if (!byTable.has(r.from)) byTable.set(r.from, []); byTable.get(r.from).push(r); });
+  var incHtml = Array.from(byTable.keys()).sort().map(function(k){
+    var rs = byTable.get(k);
+    if (rs.length === 1) return relItem(rs[0], false);
+    return '<li><button class="lnk" data-goto="' + esc(k) + '">' + esc(k) + '</button> <span class="sub">via ' + rs.length + ' columns:</span> ' + rs.map(function(r){ return '<code>' + esc(r.fromCols[0]) + '</code>'; }).join(', ') + '</li>';
+  }).join('');
+  var iss = t.iss.slice().sort(function(a, b){ return SEVRANK[a.sev] - SEVRANK[b.sev]; });
+  p.innerHTML =
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span class="chip"><span class="sw ar' + areaIdx.get(t.area) + '"></span>' + esc(areaLabel.get(t.area)) + '</span><span class="chip">' + esc(t.schema) + '</span>' + (t.isLookup ? '<span class="chip">lookup</span>' : '') + (t.hub ? '<span class="chip">hub</span>' : '') + '</div>' +
+    '<h2>' + esc(t.name) + '</h2>' + (t.description ? '<p>' + esc(t.description) + '</p>' : '<p class="sub">No table description in the dictionary.</p>') +
+    (t.guidance ? '<details><summary>Usage guidance</summary><p>' + esc(t.guidance) + '</p></details>' : '') +
+    '<h3>Summary <span class="tag">Derived</span></h3><p>' + esc(t.summary) + '</p>' +
+    '<dl class="kv"><dt>Primary key</dt><dd>' + esc(t.pk.join(', ') || 'none declared') + '</dd><dt>Columns</dt><dd>' + t.columns.length + '</dd></dl>' +
+    '<h3>References (' + outs.length + ')</h3>' + (outs.length ? '<ul class="list">' + outs.map(function(r){ return relItem(r, true); }).join('') + '</ul>' : '<p class="sub">None.</p>') +
+    '<h3>Referenced by (' + t.inc.length + ')</h3>' + (incHtml ? '<ul class="list">' + incHtml + '</ul>' : '<p class="sub">None.</p>') +
+    '<h3>Data issues (' + iss.length + ')</h3>' + (iss.length ? '<ul class="list">' + iss.map(function(i){ return issueItem(i, false); }).join('') + '</ul>' : '<p class="sub">None found.</p>') +
+    '<h3>Columns</h3><input id="cfilter" class="ctl filter" type="search" placeholder="Filter columns" aria-label="Filter columns">' +
+    '<div class="wrap"><table class="ctab"><thead><tr><th>Key</th><th>Column</th><th>Type</th><th>Description</th></tr></thead><tbody id="ctbody"></tbody></table></div>';
+  renderColRows(t, '');
+  $('#cfilter').addEventListener('input', function(e){ renderColRows(t, e.target.value); });
+}
+function renderColRows(t, q){
+  q = q.toLowerCase();
+  var rows = t.columns.filter(function(c){ return !q || c.name.toLowerCase().indexOf(q) >= 0 || (c.desc || '').toLowerCase().indexOf(q) >= 0; });
+  $('#ctbody').innerHTML = rows.map(function(c){
+    var fk = t.out.some(function(r){ return r.fromCols[0] === c.name; });
+    return '<tr class="r' + (c.flags && c.flags.length ? ' flag' : '') + '" data-col="' + esc(c.name) + '" tabindex="0"><td class="ktag">' + (c.pk ? 'PK' : '') + (fk ? (c.pk ? ' ' : '') + 'FK' : '') + '</td><td class="nm">' + esc(c.name) + (c.required ? ' <span class="sub">*</span>' : '') +
+      '</td><td class="nm">' + esc(c.type || c.dictType || '') + '</td><td><span class="ds">' + esc(c.desc || '') + '</span></td></tr>';
+  }).join('') || '<tr><td colspan="4" class="sub">No columns match.</td></tr>';
+}
+function colDetail(t, cn){
+  var c = t.columns.find(function(x){ return x.name === cn; });
+  var others = (colTables.get(nk(cn)) || []).filter(function(x){ return x !== t.id; });
+  var joins = t.out.concat(t.inc).filter(function(r){ return (r.from === t.id && r.fromCols.indexOf(cn) >= 0) || (r.to === t.id && r.toCols.indexOf(cn) >= 0); });
+  return '<tr class="x"><td></td><td colspan="3">' +
+    (c.desc ? '<p>' + esc(c.desc) + '</p>' : '') + (c.descFrom ? '<p class="sub">Description taken from ' + esc(c.descFrom) + '.</p>' : '') +
+    (c.etl && c.etl !== c.desc ? '<details><summary>ETL conventions</summary><p>' + esc(c.etl) + '</p></details>' : '') +
+    '<p class="sub">Model type: <code>' + esc(c.type || 'n/a') + '</code> \u00b7 Dictionary type: <code>' + esc(c.dictType || 'n/a') + '</code> \u00b7 ' + (c.required ? 'required' : 'optional') + (c.dictName && c.dictName !== c.name ? ' \u00b7 dictionary name: <code>' + esc(c.dictName) + '</code>' : '') + '</p>' +
+    (c.flags && c.flags.length ? '<p style="color:var(--warn)">Flags: ' + esc(c.flags.join(', ')) + '</p>' : '') +
+    (joins.length ? '<p>Joins: ' + joins.map(function(r){ return relLine(r) + ' <span class="src ' + r.source + '">' + r.source + '</span>'; }).join('<br>') + '</p>' : '') +
+    '<p>' + (others.length ? 'Also in: ' + others.map(function(o){ return '<button class="lnk" data-goto="' + esc(o) + '" data-col="' + esc(T.get(o).columns.find(function(x){ return nk(x.name) === nk(cn); }).name) + '">' + esc(o) + '</button>'; }).join(', ') : '<span class="sub">No other table has this column.</span>') + '</p></td></tr>';
+}
+function showColumn(tid, cn){
+  if (S.sel !== tid) select(tid);
+  var tr = $('#ctbody tr[data-col="' + cssq(cn) + '"]'); if (!tr) return;
+  toggleColRow(tr, true);
+  tr.scrollIntoView({ block: 'nearest' });
+}
+function toggleColRow(tr, forceOpen){
+  var nx = tr.nextElementSibling;
+  if (nx && nx.classList.contains('x')){ if (!forceOpen) nx.remove(); return; }
+  tr.insertAdjacentHTML('afterend', colDetail(T.get(S.sel), tr.getAttribute('data-col')));
+}
+$('#p-table').addEventListener('click', function(e){
+  var tr = e.target.closest('tr.r'); if (tr && !e.target.closest('button')) toggleColRow(tr);
+});
+$('#p-table').addEventListener('keydown', function(e){ var tr = e.target.closest('tr.r'); if (tr && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); toggleColRow(tr); } });
+document.addEventListener('click', function(e){
+  var b = e.target.closest('[data-goto]'); if (!b) return;
+  goTo(b.getAttribute('data-goto'), b.getAttribute('data-col'));
+});
+function ensureVisible(id){
+  var t = T.get(id), changed = false;
+  if (!S.f.areas.has(t.area)){ S.f.areas.add(t.area); changed = true; }
+  if (!S.f.schemas.has(t.schema)){ S.f.schemas.add(t.schema); changed = true; }
+  if (S.f.hideLookup && t.isLookup){ S.f.hideLookup = false; changed = true; }
+  if (S.f.hideIsolated){ S.f.hideIsolated = false; changed = true; }
+  return changed;
+}
+function goTo(id, col){
+  if (!T.has(id)) return;
+  var changed = ensureVisible(id);
+  S.path = null; S.sel = id; S.flash = col ? { t: id, col: col } : null;
+  if (S.layout === 'focus' || changed || col) renderAll(true); else redrawHubAware();
+  centerOn(id);
+  renderTablePane(); renderPathsPane(); showTab('table'); openPanel();
+  if (col) showColumn(id, col);
+  if (changed) toast('Filters adjusted to show ' + id);
+  if (col) setTimeout(function(){ S.flash = null; }, 50);
+}
+
+/* ---------- query paths ---------- */
+function renderPathsPane(){
+  var p = $('#p-paths');
+  p.innerHTML = '<p class="sub">Preset join paths. Selecting one highlights its tables and joins and zooms to them.</p>' +
+    (S.path ? '<p><button class="btn" id="pclear">Clear path</button></p>' : '') +
+    '<div style="display:grid;gap:8px">' + M.queryPaths.map(function(q){
+      var rs = q.rels.map(function(id){ return RBY.get(id); }), inf = rs.some(function(r){ return r.source === 'inf'; });
+      return '<div class="path' + (S.path && S.path.id === q.id ? ' on' : '') + '"><h4>' + esc(q.label) + (inf ? ' <span class="src inf">has inferred</span>' : '') + '</h4><p class="sub">' + esc(q.desc) + '</p>' +
+        '<div class="sub mono" style="word-break:break-word">' + rs.map(function(r){ return esc(r.from + '.' + r.fromCols[0] + ' \u2192 ' + r.to); }).join('<br>') + '</div>' +
+        '<p><button class="btn" data-path="' + esc(q.id) + '" aria-pressed="' + (S.path && S.path.id === q.id) + '">Show path</button></p></div>';
+    }).join('') + '</div>';
+}
+$('#p-paths').addEventListener('click', function(e){
+  if (e.target.id === 'pclear'){ S.path = null; applyHL(); renderPathsPane(); redrawHubAware(); return; }
+  var b = e.target.closest('[data-path]'); if (!b) return;
+  var q = M.queryPaths.find(function(x){ return x.id === b.getAttribute('data-path'); });
+  if (S.layout === 'focus'){ S.layout = 'area'; $('#layout').value = 'area'; toast('Switched from Focus to By subject area to show the whole path'); }
+  q.tables.forEach(ensureVisible);
+  S.path = q; S.sel = null;
+  renderAll(true); renderTablePane();
+  fit(q.tables, 1.0); renderPathsPane();
+});
+
+/* ---------- issues ---------- */
+function renderIssuesPane(){
+  var p = $('#p-issues'), groups = new Map();
+  M.issues.slice().sort(function(a, b){ return SEVRANK[a.sev] - SEVRANK[b.sev]; }).forEach(function(i){ if (!groups.has(i.cat)) groups.set(i.cat, []); groups.get(i.cat).push(i); });
+  var sev = { high: 0, med: 0, low: 0, info: 0 }; M.issues.forEach(function(i){ sev[i.sev]++; });
+  var cats = Array.from(groups.keys()).sort(function(a, b){ return SEVRANK[groups.get(a)[0].sev] - SEVRANK[groups.get(b)[0].sev] || groups.get(b).length - groups.get(a).length; });
+  p.innerHTML = '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="sev high">high</span>' + sev.high + '<span class="sev med">med</span>' + sev.med + '<span class="sev low">low</span>' + sev.low + '<span class="sev info">info</span>' + sev.info +
+    '<button class="btn" data-ex="issues" style="margin-left:auto">Export CSV</button></div>' +
+    '<p class="sub">Generated by reconciling the two sources, then grouped. Click an item to jump to it.</p>' +
+    cats.map(function(c){ var it = groups.get(c), open = it[0].sev === 'high';
+      return '<details class="grp"' + (open ? ' open' : '') + '><summary><span class="sev ' + it[0].sev + '">' + it[0].sev + '</span>' + esc(c) + '<span class="n">' + it.length + '</span></summary><ul class="list">' + it.map(function(i){ return issueItem(i, true); }).join('') + '</ul></details>';
+    }).join('') +
+    '<h3>Validation checklist</h3><div class="chk">' + (M.validation || []).map(function(v){ return '<span class="' + (v.ok ? 'ok' : 'bad') + '">' + (v.ok ? 'PASS' : 'FAIL') + '</span><span>' + esc(v.check) + ' <span class="sub">(' + esc(v.detail) + ')</span></span>'; }).join('') + '</div>';
+}
+
+/* ---------- help ---------- */
+function renderHelpPane(){
+  var m = M.meta;
+  $('#p-help').innerHTML =
+    '<h3>Reading the diagram</h3><ul class="list">' +
+    '<li><svg width="40" height="12" aria-hidden="true"><path d="M2 6H38" stroke="var(--edge)" stroke-width="1.6"/></svg> Documented join: declared as a foreign key or described as one in the source.</li>' +
+    '<li><svg width="40" height="12" aria-hidden="true"><path d="M2 6H38" stroke="var(--inf)" stroke-width="1.6" stroke-dasharray="6 4"/></svg> Inferred join: matched by column name or described as polymorphic. Validate before relying on it.</li>' +
+    '<li><svg width="40" height="14" aria-hidden="true"><path d="M2 2L13 7L2 12M16 2V12M24 7H38" fill="none" stroke="var(--edge)" stroke-width="1.4"/></svg> Crow\u2019s foot marks the many side. A double bar marks the one side.</li>' +
+    '<li><b class="mono" style="color:var(--accent)">PK</b> primary key, <b class="mono" style="color:var(--muted)">FK</b> foreign key. Italic amber column names carry a reconciliation flag.</li>' +
+    '<li>A column showing <span class="mono" style="color:var(--accent)">\u2192 table</span> joins to a collapsed hub. Turn on <b>Show hub joins</b>, or select the table, to draw those lines.</li>' +
+    '<li>A red or amber badge on a table header counts its high and medium issues.</li></ul>' +
+    '<h3>Using it</h3><ul class="list"><li>Drag the background to pan. Scroll, pinch or use + and \u2212 to zoom. <b>Fit</b> frames everything visible.</li>' +
+    '<li>Hover a table, column or line for details. On touch screens, tap instead.</li><li>Drag a table to move it. Moves are kept in the <b>Custom</b> layout in this browser only; use Export, Layout JSON to share them.</li>' +
+    '<li><b>Focus</b> shows the selected table and its neighbours, one or two hops out.</li>' +
+    '<li>Keys: <kbd>/</kbd> search, <kbd>Esc</kbd> clear, <kbd>+</kbd> <kbd>\u2212</kbd> zoom, <kbd>0</kbd> fit, <kbd>Enter</kbd> on a focused table selects it.</li></ul>' +
+    '<h3>Sources</h3><ul class="list">' + m.sources.map(function(s){ return '<li><b>' + esc(s.role) + ':</b> <a href="' + esc(s.url) + '" target="_blank" rel="noopener">' + esc(s.label) + '</a></li>'; }).join('') +
+    '<li class="sub">Source revision: <code>' + esc(m.commit) + '</code>' + (m.hasPositions ? '' : '. The sources carry no diagram coordinates, so the Original layout is unavailable.') + '</li></ul>' +
+    '<h3>Caveats</h3><ul class="list"><li>Inferred joins need validation against real data.</li><li>Table summaries are derived from the model, not written by the source authors.</li><li>Saved layouts live in this browser only.</li>' +
+    '<li>Issues report what the two sources say about each other. They do not check the data itself.</li></ul>';
+}
+
+/* ---------- filters ---------- */
+function count(pred){ return M.tables.filter(pred).length; }
+function renderFilters(){
+  var f = S.f, a = $('#filters');
+  var visCount = function(pred){ return visTables().filter(pred).length; };
+  var nDoc = R.filter(function(r){ return r.source === 'doc'; }).length, nInf = R.length - nDoc, nHub = R.filter(function(r){ return r.hub; }).length;
+  var html = '<div style="display:flex;justify-content:space-between;align-items:center"><h2>Filters</h2><button class="btn narrow" id="fclose" style="height:28px">Close</button></div>';
+  if (schemas.length > 1){
+    html += '<h2>Schema</h2>' + schemas.map(function(s){ return '<label class="fl"><input type="checkbox" data-f="schema" value="' + esc(s) + '"' + (f.schemas.has(s) ? ' checked' : '') + '>' + esc(s) + '<span class="n">' + visCount(function(t){ return t.schema === s; }) + '/' + count(function(t){ return t.schema === s; }) + '</span></label>'; }).join('');
+  }
+  html += '<h2>Subject area</h2>' + M.subjectAreas.map(function(ar){ return '<label class="fl"><input type="checkbox" data-f="area" value="' + esc(ar.id) + '"' + (f.areas.has(ar.id) ? ' checked' : '') + '><span class="sw ar' + areaIdx.get(ar.id) + '"></span>' + esc(ar.label) + '<span class="n">' + visCount(function(t){ return t.area === ar.id; }) + '/' + count(function(t){ return t.area === ar.id; }) + '</span></label>'; }).join('');
+  html += '<h2>Joins</h2><label class="fl"><input type="checkbox" data-f="doc"' + (f.doc ? ' checked' : '') + '>Documented<span class="n">' + nDoc + '</span></label>' +
+    '<label class="fl"><input type="checkbox" data-f="inf"' + (f.inf ? ' checked' : '') + '>Inferred<span class="n">' + nInf + '</span></label>' +
+    (nHub ? '<label class="fl"><input type="checkbox" data-f="showHub"' + (f.showHub ? ' checked' : '') + '>Show hub joins<span class="n">' + nHub + '</span></label>' : '');
+  html += '<h2>Tables</h2><label class="fl"><input type="checkbox" data-f="hideLookup"' + (f.hideLookup ? ' checked' : '') + '>Hide lookup tables<span class="n">' + count(function(t){ return t.isLookup; }) + '</span></label>' +
+    '<label class="fl"><input type="checkbox" data-f="hideIsolated"' + (f.hideIsolated ? ' checked' : '') + '>Hide tables with no joins<span class="n">' + count(function(t){ return !t.out.concat(t.inc).some(relPassesSource); }) + '</span></label>' +
+    '<p style="margin-top:10px"><button class="btn" id="freset">Reset filters</button></p>' +
+    (M.meta.hubNote && nHub ? '<p class="note">' + esc(M.meta.hubNote) + '</p>' : '');
+  var focusEl = document.activeElement && document.activeElement.closest && document.activeElement.closest('#filters') ? (document.activeElement.getAttribute('data-f') + '|' + document.activeElement.value) : null;
+  a.innerHTML = html;
+  if (focusEl){ var parts = focusEl.split('|'); var e = $$('#filters input').find(function(i){ return i.getAttribute('data-f') === parts[0] && (i.value === parts[1] || parts[1] === 'on'); }); if (e) e.focus(); }
+}
+$('#filters').addEventListener('change', function(e){
+  var i = e.target, k = i.getAttribute('data-f'); if (!k) return;
+  if (k === 'schema') i.checked ? S.f.schemas.add(i.value) : S.f.schemas.delete(i.value);
+  else if (k === 'area') i.checked ? S.f.areas.add(i.value) : S.f.areas.delete(i.value);
+  else S.f[k] = i.checked;
+  if (k === 'showHub') savePrefs();
+  renderAll(S.layout === 'custom' || S.layout === 'original');
+});
+$('#filters').addEventListener('click', function(e){
+  if (e.target.id === 'freset'){ S.f = { schemas: new Set(schemas), areas: new Set(M.subjectAreas.map(function(a){ return a.id; })), doc: true, inf: true, hideLookup: false, hideIsolated: false, showHub: S.f.showHub }; renderAll(); }
+  if (e.target.id === 'fclose') toggleDrawer(false);
+});
+
+/* ---------- search ---------- */
+var qi = $('#q'), qres = $('#qres'), qitems = [], qsel = -1;
+function runSearch(){
+  var q = qi.value.trim().toLowerCase(); S.q = q; qitems = []; qsel = -1;
+  if (!q){ qres.hidden = true; qi.setAttribute('aria-expanded', 'false'); S.matches = null; applyHL(); return; }
+  var m = new Set();
+  M.tables.forEach(function(t){ if (t.name.toLowerCase().indexOf(q) >= 0){ qitems.push({ t: t.id }); m.add(t.id); } });
+  M.tables.forEach(function(t){ t.columns.forEach(function(c){ if (c.name.toLowerCase().indexOf(q) >= 0 || nk(c.name).indexOf(nk(q)) >= 0){ qitems.push({ t: t.id, c: c.name }); m.add(t.id); } }); });
+  S.matches = m; applyHL();
+  var shown = qitems.slice(0, 40);
+  qres.innerHTML = shown.length ? shown.map(function(it, i){
+    return '<li role="option" id="qo' + i + '" data-i="' + i + '" aria-selected="false"><span class="mono">' + esc(it.c ? it.c : it.t) + '</span><span class="k">' + (it.c ? esc(it.t) : 'table') + '</span></li>'; }).join('') +
+    (qitems.length > 40 ? '<li class="k" aria-disabled="true">' + (qitems.length - 40) + ' more, refine the search</li>' : '')
+    : '<li class="k" aria-disabled="true">No matches</li>';
+  qres.hidden = false; qi.setAttribute('aria-expanded', 'true');
+}
+function pickSearch(i){
+  var it = qitems[i]; if (!it) return;
+  qres.hidden = true; qi.setAttribute('aria-expanded', 'false');
+  goTo(it.t, it.c || null);
+}
+qi.addEventListener('input', runSearch);
+qi.addEventListener('keydown', function(e){
+  var n = Math.min(qitems.length, 40);
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+    e.preventDefault(); if (!n) return;
+    qsel = (qsel + (e.key === 'ArrowDown' ? 1 : n - 1) + (qsel < 0 && e.key === 'ArrowUp' ? 1 : 0)) % n;
+    $$('#qres li[role=option]').forEach(function(li, i){ li.setAttribute('aria-selected', String(i === qsel)); });
+    var cur = $('#qo' + qsel); if (cur){ cur.scrollIntoView({ block: 'nearest' }); qi.setAttribute('aria-activedescendant', 'qo' + qsel); }
+  } else if (e.key === 'Enter'){ e.preventDefault(); pickSearch(qsel < 0 ? 0 : qsel); }
+  else if (e.key === 'Escape'){ qi.value = ''; runSearch(); qi.blur(); }
+});
+qres.addEventListener('mousedown', function(e){ var li = e.target.closest('[data-i]'); if (li){ e.preventDefault(); pickSearch(+li.getAttribute('data-i')); } });
+qi.addEventListener('blur', function(){ setTimeout(function(){ qres.hidden = true; qi.setAttribute('aria-expanded', 'false'); }, 120); });
+
+/* ---------- controls ---------- */
+var lsel = $('#layout');
+if (!M.meta.hasPositions){ var o = lsel.querySelector('[value=original]'); o.disabled = true; o.textContent = 'Original (no coordinates in sources)'; }
+lsel.value = S.layout; $('#colmode').value = S.colMode;
+lsel.addEventListener('change', function(){ S.layout = lsel.value; if (S.layout !== 'focus') S.focusSet = null; S.path = S.layout === 'focus' ? null : S.path; savePrefs(); renderAll(); renderPathsPane(); });
+$('#colmode').addEventListener('change', function(e){ S.colMode = e.target.value; savePrefs(); renderAll(S.layout === 'custom' || S.layout === 'original'); });
+$('#hops').addEventListener('change', function(e){ S.hops = +e.target.value; renderAll(); });
+$('#zin').addEventListener('click', function(){ zoomAt(1.25, svg.clientWidth / 2, svg.clientHeight / 2); });
+$('#zout').addEventListener('click', function(){ zoomAt(0.8, svg.clientWidth / 2, svg.clientHeight / 2); });
+$('#zfit').addEventListener('click', function(){ fit(); });
+var THEMES = ['', 'dark', 'light'], tIdx = Math.max(0, THEMES.indexOf(prefs.theme || ''));
+function applyTheme(){ var th = THEMES[tIdx]; if (th) document.documentElement.setAttribute('data-theme', th); else if (prefs.themeSet) document.documentElement.removeAttribute('data-theme');
+  $('#btnTheme').textContent = 'Theme: ' + (th ? th[0].toUpperCase() + th.slice(1) : 'Auto'); $('#btnTheme').setAttribute('aria-label', 'Theme: ' + (th || 'follow system') + '. Click to change.'); }
+if (prefs.theme) applyTheme();
+$('#btnTheme').addEventListener('click', function(){ tIdx = (tIdx + 1) % 3; prefs.theme = THEMES[tIdx]; prefs.themeSet = true; applyTheme(); var p = store.get('prefs') || {}; p.theme = prefs.theme; store.set('prefs', p); });
+function toggleDrawer(open){ $('#filters').classList.toggle('open', open); $('#btnFilters').setAttribute('aria-expanded', String(open)); }
+$('#btnFilters').addEventListener('click', function(){ toggleDrawer(!$('#filters').classList.contains('open')); });
+$('#btnPanel').addEventListener('click', function(){ var o = !$('#panel').classList.contains('open'); $('#panel').classList.toggle('open', o); $('#btnPanel').setAttribute('aria-expanded', String(o)); });
+$('#panelClose').addEventListener('click', function(){ $('#panel').classList.remove('open'); $('#btnPanel').setAttribute('aria-expanded', 'false'); });
+gN.addEventListener('keydown', function(e){
+  var n = e.target.closest && e.target.closest('.node'); if (!n) return;
+  if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); select(n.getAttribute('data-id')); }
+});
+gN.addEventListener('focusin', function(e){ var n = e.target.closest('.node'); if (n){ S.hover = n.getAttribute('data-id'); applyHL(); } });
+gN.addEventListener('focusout', function(){ S.hover = null; applyHL(); });
+document.addEventListener('keydown', function(e){
+  var typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+  if (e.key === 'Escape'){
+    if (!$('#modal').hidden){ closeModal(); return; }
+    if (!$('#exMenu').hidden){ closeMenu(); return; }
+    S.sel = null; S.path = null; S.hoverEdge = null; hideTip(); renderTablePane(); renderPathsPane(); redrawHubAware(); return;
+  }
+  if (typing) return;
+  if (e.key === '/'){ e.preventDefault(); qi.focus(); }
+  else if (e.key === '+' || e.key === '='){ zoomAt(1.25, svg.clientWidth / 2, svg.clientHeight / 2); }
+  else if (e.key === '-'){ zoomAt(0.8, svg.clientWidth / 2, svg.clientHeight / 2); }
+  else if (e.key === '0'){ fit(); }
+});
+function toast(msg){ var t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(function(){ t.hidden = true; }, 2600); }
+
+/* ---------- custom layout persistence ---------- */
+function saveCustom(){
+  var o = {}; S.pos.forEach(function(p, id){ o[id] = { x: p.x, y: p.y }; });
+  S.customMem = o;
+  var ok = store.set('custom', o);
+  if (S.layout !== 'custom'){ S.layout = 'custom'; lsel.value = 'custom'; S.lanes = []; renderLanes(); }
+  toast(ok ? 'Position saved to the Custom layout in this browser' : 'Position kept for this session only (browser storage unavailable)');
+  savePrefs();
+}
+
+/* ---------- export / import ---------- */
+var exBtn = $('#btnExport'), exMenu = $('#exMenu');
+function closeMenu(){ exMenu.hidden = true; exBtn.setAttribute('aria-expanded', 'false'); }
+exBtn.addEventListener('click', function(){ var o = exMenu.hidden; exMenu.hidden = !o; exBtn.setAttribute('aria-expanded', String(o)); if (o) exMenu.querySelector('button').focus(); });
+document.addEventListener('click', function(e){
+  if (!e.target.closest('.menu')) closeMenu();
+  var b = e.target.closest('[data-ex]'); if (!b) return;
+  closeMenu(); doExport(b.getAttribute('data-ex'));
+});
+function csv(rows){ return rows.map(function(r){ return r.map(function(v){ v = v == null ? '' : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }).join(','); }).join('\n'); }
+function doExport(kind){
+  var base = M.meta.short;
+  if (kind === 'rels') textModal('Relationships CSV', base + '_relationships.csv', csv([['id', 'from_table', 'from_columns', 'to_table', 'to_columns', 'cardinality', 'source', 'confidence', 'role', 'condition', 'evidence', 'flags']].concat(
+    R.map(function(r){ return [r.id, r.from, r.fromCols.join('|'), r.to, r.toCols.join('|'), r.card, r.source === 'doc' ? 'documented' : 'inferred', r.confidence || '', r.role, r.condition, r.evidence, (r.flags || []).join('|')]; }))), 'text/csv');
+  else if (kind === 'cols') textModal('Merged columns CSV', base + '_columns.csv', csv([['table', 'area', 'column', 'model_type', 'dictionary_type', 'required', 'pk', 'flags', 'other_tables_with_column', 'description']].concat(
+    [].concat.apply([], M.tables.map(function(t){ return t.columns.map(function(c){ return [t.id, areaLabel.get(t.area), c.name, c.type, c.dictType, c.required, c.pk, (c.flags || []).join('|'), (colTables.get(nk(c.name)) || []).length - 1, c.desc]; }); })))), 'text/csv');
+  else if (kind === 'issues') textModal('Data issues CSV', base + '_issues.csv', csv([['id', 'severity', 'category', 'table', 'column', 'message', 'evidence']].concat(M.issues.map(function(i){ return [i.id, i.sev, i.cat, i.table, i.column, i.msg, i.evidence]; }))), 'text/csv');
+  else if (kind === 'layout'){ var o = { model: M.meta.short, layout: S.layout, positions: {} }; S.pos.forEach(function(p, id){ if (S.vis.has(id)) o.positions[id] = p; }); textModal('Layout JSON', base + '_layout.json', JSON.stringify(o, null, 1), 'application/json'); }
+  else if (kind === 'import') importModal();
+  else if (kind === 'png') pngExport();
+}
+/* In the Claude artifact viewer, saves go through the downloads capability (viewer confirms).
+   As a standalone file, a plain download link works. Copy is always offered as a fallback. */
+var DL = null;
+try { if (window.claude && window.claude.use) window.claude.use('downloads').then(function(n){ DL = n; }, function(){}); } catch(e){}
+function dataUrlToBlob(u){ var p = u.split(','), bin = atob(p[1]), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return new Blob([a], { type: 'image/png' }); }
+function download(name, data, type){
+  var msg = function(t){ var m = $('#mmsg'); if (m) m.textContent = t; };
+  var isUrl = typeof data === 'string' && data.indexOf('data:') === 0;
+  if (DL){
+    DL.save({ filename: name, data: isUrl ? dataUrlToBlob(data) : data }).then(function(){ msg('Saved ' + name); }, function(e){
+      var c = e && e.code;
+      msg(c === 'declined' ? 'Save cancelled.' : c === 'rate_limited' ? 'A save prompt is already open. Try again in a moment.' : 'Saving is not available here. Use Copy instead.');
+    });
+    return;
+  }
+  try { var url = isUrl ? data : URL.createObjectURL(new Blob([data], { type: type }));
+    var a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    msg('Download started. If nothing appeared, use Copy.'); } catch(e){ msg('Download failed here. Use Copy instead.'); }
+}
+function openModal(title, body, foot){ $('#mtitle').textContent = title; $('#mbody').innerHTML = body; $('#mfoot').innerHTML = foot; $('#modal').hidden = false; $('#mclose').focus(); }
+function closeModal(){ $('#modal').hidden = true; exBtn.focus(); }
+$('#mclose').addEventListener('click', closeModal);
+$('#modal').addEventListener('click', function(e){ if (e.target.id === 'modal') closeModal(); });
+function textModal(title, name, text, type){
+  openModal(title, '<p class="sub">' + (text.split('\n').length - 1) + ' rows. Download saves a file where the page allows it; Copy always works.</p><textarea id="mtext" readonly aria-label="' + esc(title) + '"></textarea>',
+    '<button class="btn primary" id="mdl">Download ' + esc(name) + '</button><button class="btn" id="mcopy">Copy</button><span class="sub" id="mmsg" role="status"></span>');
+  $('#mtext').value = text;
+  $('#mdl').onclick = function(){ download(name, text, type); };
+  $('#mcopy').onclick = function(){
+    var ta = $('#mtext');
+    var done = function(){ $('#mmsg').textContent = 'Copied'; };
+    var fallback = function(){ ta.focus(); ta.select(); try { document.execCommand('copy'); done(); } catch(e){ $('#mmsg').textContent = 'Text selected. Press Ctrl or Cmd + C.'; } };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback); else fallback();
+  };
+}
+function importModal(){
+  openModal('Import layout JSON', '<p class="sub">Paste a layout exported from this explorer, or choose a file. Positions load into the Custom layout.</p><textarea id="mtext" aria-label="Layout JSON"></textarea><p><input type="file" id="mfile" accept=".json,application/json"></p>',
+    '<button class="btn primary" id="mapply">Apply layout</button><span class="sub" id="mmsg" role="status"></span>');
+  $('#mfile').onchange = function(e){ var f = e.target.files[0]; if (!f) return; var rd = new FileReader(); rd.onload = function(){ $('#mtext').value = rd.result; }; rd.readAsText(f); };
+  $('#mapply').onclick = function(){
+    try {
+      var o = JSON.parse($('#mtext').value), pos = o.positions || o, n = 0, c = {};
+      Object.keys(pos).forEach(function(id){ if (T.has(id) && isFinite(pos[id].x) && isFinite(pos[id].y)){ c[id] = { x: +pos[id].x, y: +pos[id].y }; n++; } });
+      if (!n) throw new Error('No positions matched tables in this model.');
+      S.customMem = c; store.set('custom', c); S.layout = 'custom'; lsel.value = 'custom'; savePrefs(); renderAll(); closeModal(); toast('Imported ' + n + ' table positions');
+    } catch(err){ $('#mmsg').textContent = 'Could not import: ' + err.message; }
+  };
+}
+function resolvedCss(){
+  var cs = getComputedStyle(document.documentElement);
+  return SVG_CSS.replace(/var\(--([\w-]+)\)/g, function(_, n){ return cs.getPropertyValue('--' + n).trim(); });
+}
+function pngExport(){
+  var b = bbox(Array.from(S.vis)); if (!b) return;
+  var pad = 90, W = b.w + pad * 2, H = b.h + pad * 2;
+  var clone = svg.cloneNode(true);
+  clone.setAttribute('xmlns', NS); clone.setAttribute('width', W); clone.setAttribute('height', H);
+  clone.setAttribute('viewBox', (b.x - pad) + ' ' + (b.y - pad) + ' ' + W + ' ' + H);
+  clone.removeAttribute('style');
+  clone.querySelector('#vp').removeAttribute('transform');
+  clone.classList.remove('lod');
+  var s = document.createElementNS(NS, 'style'); s.textContent = resolvedCss(); clone.insertBefore(s, clone.firstChild);
+  var bg = document.createElementNS(NS, 'rect'); bg.setAttribute('class', 'bg'); bg.setAttribute('x', b.x - pad); bg.setAttribute('y', b.y - pad); bg.setAttribute('width', W); bg.setAttribute('height', H);
+  clone.insertBefore(bg, s.nextSibling);
+  $$('.hit', clone).forEach(function(h){ if (h.tagName === 'path') h.remove(); });
+  var xml = new XMLSerializer().serializeToString(clone);
+  var img = new Image(), scale = clamp(Math.min(2, 8000 / Math.max(W, H)), 0.25, 2);
+  img.onload = function(){
+    var c = document.createElement('canvas'); c.width = Math.round(W * scale); c.height = Math.round(H * scale);
+    var ctx = c.getContext('2d'); ctx.scale(scale, scale); ctx.drawImage(img, 0, 0);
+    var url; try { url = c.toDataURL('image/png'); } catch(e){ toast('PNG export failed: ' + e.message); return; }
+    window.__lastPng = url.length;
+    openModal('PNG of visible diagram', '<p class="sub">' + Math.round(W * scale) + ' \u00d7 ' + Math.round(H * scale) + ' px, current highlight state included. If Download does nothing here, right-click or long-press the image to save it.</p><img alt="Exported diagram" src="' + url + '">',
+      '<button class="btn primary" id="mdl">Download PNG</button><span class="sub" id="mmsg" role="status"></span>');
+    $('#mdl').onclick = function(){ download(M.meta.short + '_erd.png', url, 'image/png'); };
+  };
+  img.onerror = function(){ toast('PNG export failed while rendering the diagram'); };
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml);
+}
+
+/* ---------- boot ---------- */
+$('#mname').textContent = M.meta.name + ' explorer';
+$('#msub').textContent = M.tables.length + ' tables \u00b7 ' + R.length + ' joins \u00b7 ' + M.issues.length + ' data issues \u00b7 rev ' + M.meta.commit;
+renderAll();
+renderTablePane(); renderPathsPane(); renderIssuesPane(); renderHelpPane();
+var ro = new ResizeObserver(function(){ if (!ro.done){ ro.done = true; fit(); } });
+ro.observe(svg);
+window.__erd = { S: S, M: M, fit: fit, select: select, goTo: goTo, doExport: doExport };
+})();
+</script>
+
+</body>
+</html>
